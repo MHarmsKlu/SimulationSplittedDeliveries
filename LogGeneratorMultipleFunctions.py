@@ -227,6 +227,6 @@ for func_1 in func_list:
         start_date = start_date + pd.Timedelta(days=10)
         index += 1
 
-print(event_log)
+print(event_log.to_string(index=False))
 
 event_log.to_csv("eventlog.csv", index= False)
