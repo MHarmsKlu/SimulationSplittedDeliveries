@@ -171,3 +171,5 @@ for func in func_list:
     index += 1
 
 print(event_log)
+
+event_log.to_csv("eventlog.csv", index= False)
