@@ -64,7 +64,7 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
 
     result = [None] * time_slots
     for i in fixed_values:
-        result[i - 1] = fixed_values[i]
+        result[i-1] = fixed_values[i]
     print("Result with fixed values:", result)
 
     for i in range(time_slots):
@@ -228,3 +228,5 @@ for func_1 in func_list:
         index += 1
 
 print(event_log)
+
+event_log.to_csv("eventlog.csv", index= False)
