@@ -2,6 +2,43 @@ import pandas as pd
 import random
 import numpy as np
 from datetime import datetime, timedelta
+import json
+import os
+
+def convert_int64_to_int(obj):
+    """
+    Recursively converts numpy.int64 values to regular Python int.
+    """
+    if isinstance(obj, dict):
+        return {key: convert_int64_to_int(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_int64_to_int(item) for item in obj]
+    elif isinstance(obj, np.int64):  # Convert numpy int64 to native int
+        return int(obj)
+    return obj
+
+
+# Function to save the OCEL log in JSON format
+def save_ocel_log_to_json(ocel_log, start_date):
+    # Convert any np.int64 values to regular Python int
+    ocel_log = convert_int64_to_int(ocel_log)
+
+    # Create the Output directory if it does not exist
+    output_dir = "Output"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # Create the filename with the format "OrderProcess_<StartDate>.json"
+    date_str = start_date.strftime("%Y-%m-%d")
+    filename = f"OrderProcess_{date_str}.json"
+    file_path = os.path.join(output_dir, filename)
+
+    # Save the OCEL log in JSON format
+    with open(file_path, "w") as f:
+        json.dump(ocel_log, f, indent=4)
+
+    # Print the path where the OCEL log has been saved
+    print(f"OCEL Log saved at: {file_path}")
 
 
 # Helper function to generate random timedelta in a realistic working day range
@@ -126,10 +163,124 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
 
 
 # Function to generate OCEL event log
-def generate_ocel_event_log(start_date, amount, func, del_days):
+def generate_ocel_event_log(start_date, amount, func, del_days, iteration, company="company_1"):
+
+    object_types = [
+        {
+            "name": "Order",
+            "attributes": [
+                {"name": "id", "type": "string"},
+                {"name": "amount", "type": "int"}
+            ]
+        },
+        {
+            "name": "Item",
+            "attributes": [
+                {"name": "id", "type": "string"},
+                {"name": "amount", "type": "int"}
+            ]
+        },
+        {
+            "name": "Package",
+            "attributes": [
+                {"name": "id", "type": "string"},
+                {"name": "amount", "type": "int"}
+            ]
+        }
+    ]
+
+    event_types = [
+        {
+            "name": "Place Order",
+            "attributes": [
+                {"name": "company", "type": "string"}
+            ]
+        },
+        {
+            "name": "Send Invoice",
+            "attributes": [
+                {"name": "company", "type": "string"}
+            ]
+        },
+        {
+            "name": "Receive Payment",
+            "attributes": [
+                {"name": "company", "type": "string"},
+                {"name": "payment_method", "type": "string"}
+            ]
+        },
+        {
+            "name": "Check Availability",
+            "attributes": [
+                {"name": "checker", "type": "string"}
+            ]
+        },
+        {
+            "name": "Split Item",
+            "attributes": [
+                {"name": "spliter", "type": "string"},
+            ]
+        },
+        {
+            "name": "Pick Item",
+            "attributes": [
+                {"name": "picker", "type": "string"}
+            ]
+        },
+        {
+            "name": "Pack Items",
+            "attributes": [
+                {"name": "packer", "type": "string"}
+            ]
+        },
+        {
+            "name": "Store Package",
+            "attributes": [
+                {"name": "storer", "type": "string"}
+            ]
+        },
+        {
+            "name": "Load Package",
+            "attributes": [
+                {"name": "loader", "type": "string"}
+            ]
+        },
+        {
+            "name": "Deliver Package",
+            "attributes": [
+                {"name": "logistics_company", "type": "string"}
+            ]
+        }
+    ]
+
+    objects = []
+
+    # List of Warehouse Employees
+    warehouse_employees = [
+        "J. Williams",
+        "E. Davis",
+        "D. Brown",
+        "S. Wilson",
+        "L. Moore",
+        "O. Garcia"
+    ]
+
+    # List of Shipping Companies
+    shipping_companies = [
+        "DHL",
+        "UPS",
+        "FedEx"
+    ]
+
+    payment_methods = [
+        "Credit Card",
+        "PayPal",
+        "Bank Transfer"
+    ]
+
     # Generate order_id for consistency across all activities
-    order_id = f"order_{random.randint(1000, 9999)}"
-    item_id = f"item_{random.randint(1000, 9999)}"
+    order_id = f"order_{iteration}_{random.randint(1000, 9999)}"
+    item_id = f"item_{iteration}_{random.randint(1000, 9999)}"
 
     # Adjust start date to ensure it's a weekday
     start_date = adjust_to_weekday(start_date)
@@ -142,52 +293,97 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
     # Distribute values for the amount to determine when to check availability
     check_availability_days = distribute_values(func, del_days, amount)
 
+    order_object = {
+        "id": order_id,
+        "type": "Order",
+        "attributes": [
+            {"name": "amount", "value": amount, "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+        ],
+        "relationships":
+            [
+                {
+                    "objectId": item_id,
+                    "qualifier": "Item of Order"
+                }
+            ]
+    }
+
+    # Append the Order object to the list of objects
+    objects.append(order_object)
+
     # Create events for the log
     events = [
         {
-            "event_id": "e1",
-            "timestamp": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Place Order",
-            "object_id": order_id,
-            "object_type": "Order",
-            "attributes": str({
-                "amount": amount,
-                "item_id": item_id
-            })  # Ensure attributes are a string for proper display
+            "id": f"e_{iteration}_1",
+            "type": "Place Order",
+            "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": company
+                }
+
+            ],
+            "relationships": [
+                {
+                    "objectId": order_id,
+                    "qualifier": "Regular placement of order"
+                },
+                {
+                    "objectId": item_id,
+                    "qualifier": "Regular placement of order"
+                }
+            ],
         },
         {
-            "event_id": "e2",
-            "timestamp": send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Send Invoice",
-            "object_id": order_id,
-            "object_type": "Order",
-            "attributes": str({
-                "invoice_amount": amount,
-                "invoice_id": f"invoice_{random.randint(1000, 9999)}"
-            })  # Ensure attributes are a string for proper display
+            "id": f"e_{iteration}_2",
+            "type": "Send Invoice",
+            "time": send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": company
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": order_id,
+                    "qualifier": "Regular placement of order"
+                }
+            ],
+
         },
         {
-            "event_id": "e3",
-            "timestamp": receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Receive Payment",
-            "object_id": order_id,
-            "object_type": "Order",
-            "attributes": str({
-                "payment_amount": amount,
-                "payment_method": "Credit Card"
-            })  # Ensure attributes are a string for proper display
+            "id": f"e_{iteration}_3",
+            "type": "Receive Payment",
+            "time": receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": company
+                },
+                {
+                    "name": "payment_method",
+                    "value": random.choice(payment_methods)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": order_id,
+                    "qualifier": "Regular placement of order"
+                }
+            ],
         }
     ]
 
     # Now add the "Check Availability" events based on the distributed days
-    current_timestamp = place_order_timestamp
-    last_check_timestamp = current_timestamp
-    previous_available_amount = 0  # Initially no amount has been used
-    split_item_triggered = False  # Flag to track if Split Item has been triggered
+    last_check_timestamp = place_order_timestamp
     last_item_id = item_id  # Start with the initial item_id
 
     # Initialize the del_amount variable to track the cumulative available amount
     del_amount = 0  # Start with a cumulative amount of 0
+
+    split_item_timestamp = place_order_timestamp
 
     # Loop through all the `Check Availability` events
     for i, check_day in enumerate(check_availability_days):
@@ -203,15 +399,21 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
 
         # Add the "Check Availability" event
         events.append({
-            "event_id": f"e4_{i + 1}",
-            "timestamp": check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Check Availability",
-            "object_id": last_item_id,
-            "object_type": "Item",
-            "attributes": str({
-                "availability_check_id": f"check_{i + 1}",
-                "available_amount": check_availability_days[i]
-            })
+            "id": f"e_{iteration}_{i}_4",
+            "type": "Check Availability",
+            "time": check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": random.choice(warehouse_employees)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": last_item_id,
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
         })
 
         # Debugging print statement to track the process
@@ -221,29 +423,87 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
         # Check if del_amount is still less than the total amount
         if del_amount < amount:
             # Trigger Split Item if the condition is met
-            new_item_id_1 = f"item_{random.randint(1000, 9999)}"
-            new_item_id_2 = f"item_{random.randint(1000, 9999)}"
+            new_item_id_1 = f"item_{iteration}_{random.randint(1000, 9999)}"
+            new_item_id_2 = f"item_{iteration}_{random.randint(1000, 9999)}"
 
             # Print debug for Split Item
             print(f"Split Item triggered! New item IDs: {new_item_id_1}, {new_item_id_2}")
 
+
+            item_object = {
+                "id": last_item_id,
+                "type": "Item",
+                "attributes": [
+                    {"name": "amount", "value": amount - del_amount + check_availability_days[i],
+                     "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+                ],
+                "relationships":
+                    [
+                        {
+                            "objectId": new_item_id_1,
+                            "qualifier": "Split item out stock"
+                        },
+                        {
+                            "objectId": new_item_id_2,
+                            "qualifier": "Split item deliver"
+                        }
+                    ]
+            }
+
             # Add the "Split Item" event (1 day after Check Availability)
             split_item_timestamp = check_availability_timestamp + timedelta(days=1)
 
+
+
+            # Append the Item object to the list of objects
+            objects.append(item_object)
+
+
+
             events.append({
-                "event_id": f"e5_{i + 1}",
-                "timestamp": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "activity": "Split Item",
-                "object_id": last_item_id,
-                "object_type": "Item",
-                "attributes": str({
-                    "new_item_id_1": new_item_id_1,
-                    "new_item_id_2": new_item_id_2
-                })
+                "id": f"e_{iteration}_{i}_5",
+                "type": "Split Item",
+                "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                "attributes": [
+                    {
+                        "name": "spliter",
+                        "value": random.choice(warehouse_employees)
+                    }
+                ],
+                "relationships": [
+                    {
+                        "objectId": last_item_id,
+                        "qualifier": "Split of available items for delivery"
+                    },
+                    {
+                        "objectId": new_item_id_1,
+                        "qualifier": "Split item out stock"
+                    },
+                    {
+                        "objectId": new_item_id_2,
+                        "qualifier": "Split_item_deliver"
+                    }
+                ]
             })
 
             # Set the last_item_id to the first new item_id for future events
             last_item_id = new_item_id_1
+
+        else:
+            item_object = {
+                "id": last_item_id,
+                "type": "Item",
+                "attributes": [
+                    {"name": "amount", "value": amount - del_amount + check_availability_days[i],
+                     "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+                ],
+                "relationships":
+                    [
+                    ]
+            }
+
+        # Append the Order object to the list of objects
+        objects.append(item_object)
 
         # Update the last timestamp for future events
         last_check_timestamp = check_availability_timestamp
@@ -255,14 +515,22 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
                 minutes=random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
-                "event_id": f"e6_{i + 1}",
-                "timestamp": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "activity": "Pick Item",
-                "object_id": new_item_id_2,  # Use the second item ID for the "Pick Item"
-                "object_type": "Item",
-                "attributes": str({
-                    "pick_item_id": new_item_id_2
-                })
+                "id": f"e_{iteration}_{i}_6",
+                "type": "Pick Item",
+                "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+
+                "attributes": [
+                    {
+                        "name": "picker",
+                        "value": random.choice(warehouse_employees)
+                    }
+                ],
+                "relationships": [
+                    {
+                        "objectId": new_item_id_2,
+                        "qualifier": "Regular pick of item"
+                    }
+                ]
             })
             print(f"Pick Item activity for {new_item_id_2} after Split Item at {pick_item_timestamp}")
         else:
@@ -271,14 +539,21 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
                 minutes=random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
-                "event_id": f"e6_{i + 1}",
-                "timestamp": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "activity": "Pick Item",
-                "object_id": last_item_id,  # Use the item ID from Check Availability
-                "object_type": "Item",
-                "attributes": str({
-                    "pick_item_id": last_item_id
-                })
+                "id": f"e_{iteration}_{i}_7",
+                "type": "Pick Item",
+                "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                "attributes": [
+                    {
+                        "name": "picker",
+                        "value": random.choice(warehouse_employees)
+                    }
+                ],
+                "relationships": [
+                    {
+                        "objectId": last_item_id,
+                        "qualifier": "Regular pick of item"
+                    }
+                ]
             })
             print(f"Pick Item activity for {last_item_id} after Check Availability at {pick_item_timestamp}")
 
@@ -286,19 +561,44 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=random.randint(5, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
-        package_id = f"package_{random.randint(1000, 9999)}"  # Generate a random package ID
+        package_id = f"package_{iteration}_{random.randint(1000, 9999)}"  # Generate a random package ID
+
+        package_object = {
+            "id": package_id,
+            "type": "Package",
+            "attributes": [
+                {"name": "amount", "value": del_amount,
+                 "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+            ],
+            "relationships":
+                [
+                    {
+                        "objectId": last_item_id,
+                        "qualifier": "Package of item"
+                    }
+                ]
+        }
+
+        # Append the Package object to the list of objects
+        objects.append(package_object)
 
         # Add the "Pack Items" activity
         events.append({
-            "event_id": f"e7_{i + 1}",
-            "timestamp": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Pack Items",
-            "object_id": last_item_id,  # Same item ID as in Pick Item
-            "object_type": "Item",
-            "attributes": str({
-                "package_id": package_id,  # New object package
-                "item_id": last_item_id  # Same item as in Pick Item
-            })
+            "id": f"e_{iteration}_{i}_8",
+            "type": "Pack Items",
+            "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": random.choice(warehouse_employees)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": last_item_id,
+                    "qualifier": "Regular pack of item"
+                }
+            ]
         })
         print(f"Pack Items activity for {last_item_id} with package {package_id} at {pack_items_timestamp}")
 
@@ -307,14 +607,21 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
         store_package_timestamp = adjust_to_working_hours(store_package_timestamp)
         # Add the "Store Package" activity
         events.append({
-            "event_id": f"e8_{i + 1}",
-            "timestamp": store_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Store Package",
-            "object_id": package_id,  # Use the package_id created in Pack Items
-            "object_type": "Package",
-            "attributes": str({
-                "package_id": package_id  # Same package_id
-            })
+            "id": f"e_{iteration}_{i}_9",
+            "type": "Store Package",
+            "time": store_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": random.choice(warehouse_employees)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": package_id,
+                    "qualifier": "Regular store of package"
+                }
+            ]
         })
         print(f"Store Package activity for {package_id} at {store_package_timestamp}")
 
@@ -324,14 +631,21 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
         load_package_timestamp = adjust_to_working_hours(load_package_timestamp)
         # Add the "Load Package" activity
         events.append({
-            "event_id": f"e9_{i + 1}",
-            "timestamp": load_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Load Package",
-            "object_id": package_id,  # Same package_id
-            "object_type": "Package",
-            "attributes": str({
-                "package_id": package_id  # Same package_id
-            })
+            "id": f"e_{iteration}_{i}_10",
+            "type": "Load Package",
+            "time": load_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": random.choice(warehouse_employees)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": package_id,
+                    "qualifier": "Regular store of package"
+                }
+            ]
         })
         print(f"Load Package activity for {package_id} at {load_package_timestamp}")
 
@@ -339,19 +653,33 @@ def generate_ocel_event_log(start_date, amount, func, del_days):
         deliver_package_timestamp = load_package_timestamp + timedelta(days=random.randint(3, 6))  # 3 to 6 days
         # Add the "Deliver Package" activity
         events.append({
-            "event_id": f"e10_{i + 1}",
-            "timestamp": deliver_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "activity": "Deliver Package",
-            "object_id": package_id,  # Same package_id
-            "object_type": "Package",
-            "attributes": str({
-                "package_id": package_id  # Same package_id
-            })
+            "id": f"e_{iteration}_{i}_11",
+            "type": "Deliver Package",
+            "time": deliver_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": random.choice(shipping_companies)
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": package_id,
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
         })
         print(f"Deliver Package activity for {package_id} at {deliver_package_timestamp}")
 
-    # Creating a DataFrame to hold the event log
-    ocel_log = pd.DataFrame(events)
+    ocel_log = {
+        "objectTypes": object_types,  # Object types defined earlier
+        "eventTypes": event_types,  # Event types defined earlier
+        "events": events,  # Events as defined earlier
+        "objects": objects  # The list of objects created incrementally
+    }
+
+    # Save the OCEL log as a JSON file
+    save_ocel_log_to_json(ocel_log, start_date)
 
     return ocel_log
 
@@ -363,7 +691,7 @@ func = lambda x: x ** 2  # Example function for distributing the amount over tim
 del_days = 10  # Test with 10 days
 
 # Generate the OCEL event log
-ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days)
+ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
 
 # Set pandas options to display all rows and columns
 pd.set_option('display.max_rows', None)  # Display all rows
