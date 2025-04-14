@@ -44,7 +44,7 @@ class Warehouse:
         for i in range(self.order_quantity):
             yield env.timeout(1)
             self.update_inventory(env, 1)
-            order.append(env.now - order_placed)
+            order.append({"time" : env.now - order_placed, "quantity" : 1})
         
         self.evaluate_order(order, "order_completion")
         self.update_rop_and_roq("singular")
@@ -52,8 +52,24 @@ class Warehouse:
 
     def evaluate_order(self,order,kpi):
         if kpi == "order_completion":
-            order_performance = order[-1]
+            
+            order_performance = order[-1]["time"]
+        
+        elif kpi == "time_per_package":
+            times = []
+            
+            for partial in order: 
+                times.append(partial["time"])
+            
+            order_performance =  st.mean(times)
+
+        elif kpi == "time_per_good":
+            weighted_times = []
+            for partial in order:
+                weighted_times.append(partial["time"] * partial["quantity"])
+            order_performance = sum(weighted_times)/self.order_quantity
         self.past_order_data.append(order_performance)
+
         return True
     
     def update_rop_and_roq(self, kpi_type):
@@ -64,3 +80,6 @@ class Warehouse:
 env = sp.Environment()
 warehouse = Warehouse(env, consumption_interval=5, consumption_rate=5, init_rop=5, init_level=10)
 env.run(until=22)
+
+# todo: switch to realtime simulation to create synthetic log
+
