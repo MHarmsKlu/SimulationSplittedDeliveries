@@ -297,7 +297,11 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         "id": order_id,
         "type": "Order",
         "attributes": [
-            {"name": "amount", "value": amount, "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+            {
+                "name": "amount",
+                "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                "value": amount
+            }
         ],
         "relationships":
             [
@@ -434,8 +438,11 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "id": last_item_id,
                 "type": "Item",
                 "attributes": [
-                    {"name": "amount", "value": amount - del_amount + check_availability_days[i],
-                     "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+                    {
+                        "name": "amount",
+                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "value": amount - del_amount + check_availability_days[i]
+                    }
                 ],
                 "relationships":
                     [
@@ -450,15 +457,11 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                     ]
             }
 
-            # Add the "Split Item" event (1 day after Check Availability)
-            split_item_timestamp = check_availability_timestamp + timedelta(days=1)
-
-
-
-            # Append the Item object to the list of objects
+            # Append the Order object to the list of objects
             objects.append(item_object)
 
-
+            # Add the "Split Item" event (1 day after Check Availability)
+            split_item_timestamp = check_availability_timestamp + timedelta(days=1)
 
             events.append({
                 "id": f"e_{iteration}_{i}_5",
@@ -477,14 +480,40 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                     },
                     {
                         "objectId": new_item_id_1,
-                        "qualifier": "Split item out stock"
+                        "qualifier": "Split item out of stock"
                     },
                     {
                         "objectId": new_item_id_2,
-                        "qualifier": "Split_item_deliver"
+                        "qualifier": "Split item for delivery"
                     }
                 ]
             })
+
+            item_object_del = {
+                "id": new_item_id_2,
+                "type": "Item",
+                "attributes": [
+                    {
+                        "name": "amount",
+                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "value": check_availability_days[i]
+                    }
+                ],
+                "relationships":
+                    [
+                        {
+                            "objectId": last_item_id,
+                            "qualifier": "Split out of item"
+                        },
+                        {
+                            "objectId": new_item_id_1,
+                            "qualifier": "Split item out of stock"
+                        }
+                    ]
+            }
+
+            # Append the Order object to the list of objects
+            objects.append(item_object_del)
 
             # Set the last_item_id to the first new item_id for future events
             last_item_id = new_item_id_1
@@ -494,16 +523,19 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "id": last_item_id,
                 "type": "Item",
                 "attributes": [
-                    {"name": "amount", "value": amount - del_amount + check_availability_days[i],
-                     "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+                    {
+                        "name": "amount",
+                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "value": amount - del_amount + check_availability_days[i]
+                    }
                 ],
                 "relationships":
                     [
                     ]
             }
 
-        # Append the Order object to the list of objects
-        objects.append(item_object)
+            # Append the Order object to the list of objects
+            objects.append(item_object)
 
         # Update the last timestamp for future events
         last_check_timestamp = check_availability_timestamp
@@ -567,8 +599,11 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "id": package_id,
             "type": "Package",
             "attributes": [
-                {"name": "amount", "value": del_amount,
-                 "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S")}
+                {
+                    "name": "amount",
+                    "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "value": check_availability_days[i]
+                }
             ],
             "relationships":
                 [
@@ -643,7 +678,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "relationships": [
                 {
                     "objectId": package_id,
-                    "qualifier": "Regular store of package"
+                    "qualifier": "Regular load of package"
                 }
             ]
         })
@@ -672,10 +707,10 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         print(f"Deliver Package activity for {package_id} at {deliver_package_timestamp}")
 
     ocel_log = {
-        "objectTypes": object_types,  # Object types defined earlier
-        "eventTypes": event_types,  # Event types defined earlier
-        "events": events,  # Events as defined earlier
-        "objects": objects  # The list of objects created incrementally
+        "objectTypes": object_types,
+        "eventTypes": event_types,
+        "objects": objects,
+        "events": events
     }
 
     # Save the OCEL log as a JSON file
