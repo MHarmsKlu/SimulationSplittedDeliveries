@@ -1,85 +1,87 @@
-import simpy as sp 
+
 import statistics as st
+from order import Order 
+import math
 
 
 class Warehouse:
-    def __init__(self,env, consumption_rate, consumption_interval, init_rop, init_level=0, init_order_quantity=5 ):
-        self.inventory = sp.Container(env, init=init_level)
+    def __init__(self, init_rop, init_eoq, order_base_cost, order_piece_cost, holding_cost, init_level, kpi ):
+        self.inventory = init_level
         self.rop = init_rop
-        self.monitor_proc = env.process(self.monitor_inventory(env))
-        self.consume_proc = env.process(self.consume_inventory(env))
-        self.consumption_rate = consumption_rate
-        self.consumption_interval = consumption_interval
-        self.order_quantity = init_order_quantity
+        self.eoq = init_eoq
+        self.kpi = kpi
         self.wait_for_order = False
-        self.past_order_data = []
-
-    def monitor_inventory(self, env):
-        while True:
-            if self.inventory.level <= self.rop and self.wait_for_order==False:
-                print(f'Need to reorder at {env.now}')
-                #todo add reorder functionality
-                self.wait_for_order = True
-                env.process(self.place_order(env))
-            yield env.timeout(1)
+        self.open_orders = []
+        self.order_performances = []
+        self.past_demand = []
+        self.past_eoqs = [init_eoq]
+        self.order_base_cost = order_base_cost
+        self.order_piece_cost = order_piece_cost
+        self.holding_cost = holding_cost
+        self.orders_placed = 0
     
-    def update_inventory(self, env, incoming_goods):
-        print(f"incoming goods at {env.now}")
-        self.inventory.put(incoming_goods)
+    def monitor_inventory(self, date):
+        if self.inventory <= self.rop and self.wait_for_order==False:
+            print(f'Need to reorder at {date}')
+            #todo add reorder functionality
+            self.wait_for_order = True
+            order = Order(id=self.orders_placed,  order_placed=date, quantity=self.eoq )
+            self.open_orders.append(order)
+            self.orders_placed += 1
+            return self.inventory, order
+        else:
+            return self.inventory, False
+    
+    def consume_inventory(self, date, demand):
+        self.past_demand.append(demand)
+        backorders = 0
+        fulfilled_demand = 0
+        if self.inventory >= demand:
+            print(f'consuming {demand} goods at {date}')
+            self.inventory -= demand
+            fulfilled_demand = demand
+        else: 
+            print(f'not enough inventory at {date}')
+            fulfilled_demand = self.inventory
+            backorders = demand - self.inventory
+            self.inventory = 0
+        return fulfilled_demand, backorders
 
-    def consume_inventory(self, env):
-        while True:
-            if self.inventory.level >= self.consumption_rate:
-                print(f'consuming {self.consumption_rate} goods at {env.now}')
-                yield self.inventory.get(self.consumption_rate)
-                yield env.timeout(self.consumption_interval)
-            else: 
-                print(f'not enough inventory at {env.now}')
-                yield env.timeout(1)
+    def receive_shipment(self, date, shipment):
+        print(f"incoming {shipment.quantity} goods at {date}")
+        for order in self.open_orders:
+            if order.id == shipment.order_id:
+                order.update(shipment)
+                if order.complete:
+                    self.evaluate_order(order)
+        self.inventory += shipment.quantity
+        return self.inventory
 
-    def place_order(self, env):
-        print("generate order")
-        order = []
-        order_placed= env.now
-        for i in range(self.order_quantity):
-            yield env.timeout(1)
-            self.update_inventory(env, 1)
-            order.append({"time" : env.now - order_placed, "quantity" : 1})
+    def evaluate_order(self,order):
+        if self.kpi == "order_completion":
+            order_performance  = order.completed - order.placed
         
-        self.evaluate_order(order, "order_completion")
-        self.update_rop_and_roq("singular")
+        # elif kpi == "effective_lt_per_good":
+        #     weighted_times = []
+        #     for partial in order:
+        #         weighted_times.append(partial["time"] * partial["quantity"])
+        #     order_performance = sum(weighted_times)/self.order_quantity
+        
+        self.open_orders.remove(order)
+        self.order_performances.append(order_performance)
+        self.update_rop("singular")
+        self.update_eoq()
         self.wait_for_order = False
-
-    def evaluate_order(self,order,kpi):
-        if kpi == "order_completion":
-            
-            order_performance = order[-1]["time"]
-        
-        elif kpi == "time_per_package":
-            times = []
-            
-            for partial in order: 
-                times.append(partial["time"])
-            
-            order_performance =  st.mean(times)
-
-        elif kpi == "time_per_good":
-            weighted_times = []
-            for partial in order:
-                weighted_times.append(partial["time"] * partial["quantity"])
-            order_performance = sum(weighted_times)/self.order_quantity
-        self.past_order_data.append(order_performance)
-
-        return True
     
-    def update_rop_and_roq(self, kpi_type):
-        if kpi_type == "singular":
-            self.roq = st.mean(self.past_order_data) * (self.consumption_rate / self.consumption_interval)
-            self.rop = 2 * self.roq
+    def update_eoq(self):
+        mean_order_costs = self.order_base_cost + (self.order_piece_cost * st.mean(self.past_eoqs))
+        self.past_eoqs.append(self.eoq)
+        self.eoq =  math.sqrt((2*st.mean(self.past_demand)* mean_order_costs)/self.holding_cost)
 
-env = sp.Environment()
-warehouse = Warehouse(env, consumption_interval=5, consumption_rate=5, init_rop=5, init_level=10)
-env.run(until=22)
-
-# todo: switch to realtime simulation to create synthetic log
-
+    def update_rop(self, kpi_type):
+        
+        if kpi_type == "order_completion":
+            self.rop = st.mean(self.order_performances) * st.mean(past_demand)
+        # if kpi_type == "effective_lt_per_good":
+        #     self.roq = st.mean(self.past_order_data) * (self.consumption_rate / self.consumption_interval)
+        #     self.rop = 2 * self.roq
