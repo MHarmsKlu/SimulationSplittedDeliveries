@@ -68,20 +68,20 @@ class Warehouse:
         #     order_performance = sum(weighted_times)/self.order_quantity
         
         self.open_orders.remove(order)
-        self.order_performances.append(order_performance)
-        self.update_rop("singular")
+        self.order_performances.append(order_performance.days)
+        self.update_rop()
         self.update_eoq()
         self.wait_for_order = False
     
     def update_eoq(self):
         mean_order_costs = self.order_base_cost + (self.order_piece_cost * st.mean(self.past_eoqs))
         self.past_eoqs.append(self.eoq)
-        self.eoq =  math.sqrt((2*st.mean(self.past_demand)* mean_order_costs)/self.holding_cost)
+        self.eoq =  int(math.sqrt((2*st.mean(self.past_demand)* mean_order_costs)/self.holding_cost))
 
-    def update_rop(self, kpi_type):
+    def update_rop(self):
         
-        if kpi_type == "order_completion":
-            self.rop = st.mean(self.order_performances) * st.mean(past_demand)
+        if self.kpi == "order_completion":
+            self.rop = st.mean(self.order_performances) * st.mean(self.past_demand)
         # if kpi_type == "effective_lt_per_good":
         #     self.roq = st.mean(self.past_order_data) * (self.consumption_rate / self.consumption_interval)
         #     self.rop = 2 * self.roq

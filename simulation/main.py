@@ -4,8 +4,8 @@ from datetime import date, time, datetime
 
 
 warehouse = Warehouse(
-     init_rop = 100,
-     init_eoq = 200,
+     init_rop = 50,
+     init_eoq = 100,
      order_base_cost = 50,
      order_piece_cost = 5,
      holding_cost = 10 , 
@@ -18,8 +18,8 @@ simulation = Simulation(
     days = 1000,
     warehouse = warehouse,
     seed= 42,  
-    mean_daily_demand = 50,
-    std_daily_demand = 10
+    mean_daily_demand = 5,
+    std_daily_demand = 1
 )
 
 simulation.run()

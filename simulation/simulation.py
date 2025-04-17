@@ -17,6 +17,7 @@ class Simulation:
         self.std_daily_demand = std_daily_demand
         self.shipment_schedule = []
         self.inventory_history = []
+        self.past_rops=[]
         self.backorders = 0
         self.fulfilled_demand = 0
         self.total_demand = 0
@@ -52,7 +53,7 @@ class Simulation:
         if order:
             self.simulate_order(order)
               
-
+        self.past_rops.append(self.warehouse.rop)
         self.inventory_history.append(inventory_today)
     
     def run(self):
@@ -79,7 +80,8 @@ class Simulation:
         # --- Visualization ---
         plt.figure(figsize=(12, 6))
         plt.plot(self.inventory_history, label='Inventory Level')
-        plt.axhline(y=self.warehouse.rop, color='r', linestyle='--', label='Reorder Point')
+        plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
+        # plt.axhline(y=self.warehouse.rop, color='r', linestyle='--', label='Reorder Point')
         plt.title('Inventory Level Over Time')
         plt.xlabel('Day')
         plt.ylabel('Inventory')

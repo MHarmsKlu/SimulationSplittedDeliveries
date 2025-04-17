@@ -15,6 +15,7 @@ class Order:
 
         if self.quantity == self.delivered_quantity:
             self.complete = True
+            print(f"order {self.id} complete")
             self.completed = shipment.delivery_date
 
 class Shipment:
