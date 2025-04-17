@@ -19,7 +19,8 @@ simulation = Simulation(
     warehouse = warehouse,
     seed= 42,  
     mean_daily_demand = 5,
-    std_daily_demand = 1
+    std_daily_demand = 1,
+    delivery_func = lambda x: x ** 2
 )
 
 simulation.run()

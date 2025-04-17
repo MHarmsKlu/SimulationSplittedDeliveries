@@ -3,10 +3,12 @@ from datetime import datetime, date, time, timedelta
 from warehouse import Warehouse
 from order import Order, Shipment
 import matplotlib.pyplot as plt
+from OCEL_FormatGenerator import generate_ocel_event_log
+import pm4py as pm 
 
 class Simulation:
     def __init__(
-        self, start_date, days, warehouse, seed, mean_daily_demand,std_daily_demand ):
+        self, start_date, days, warehouse, seed, mean_daily_demand,std_daily_demand,delivery_func ):
         
         self.start_date = start_date
         self.current_date = start_date
@@ -15,6 +17,7 @@ class Simulation:
         self.seed = np.random.seed(seed)
         self.mean_daily_demand = mean_daily_demand
         self.std_daily_demand = std_daily_demand
+        self.delivery_func = delivery_func
         self.shipment_schedule = []
         self.inventory_history = []
         self.past_rops=[]
@@ -26,16 +29,24 @@ class Simulation:
     
     def simulate_order(self, order):
         print("generate order")
+        delivery_days = max(1, int(np.random.normal(order.quantity, order.quantity/10)))
+        generate_ocel_event_log(start_date=self.current_date, amount=order.quantity, func=self.delivery_func, iteration=order.id, del_days=delivery_days)
         
-        for i in range(int(self.warehouse.eoq)):
-            delivery_date = self.current_date + timedelta(days=i+1)
-            self.shipment_schedule.append(Shipment(order_id=order.id, quantity=1, delivery_date=delivery_date))
-        return order
+        date_str = self.current_date.strftime("%Y-%m-%d")
+        ocel = pm.read_ocel2_json(f"Output/OrderProcess_{date_str}.json")
+        filtered_ocel = pm.filter_ocel_event_attribute(ocel,'ocel:activity',['Deliver Package'])
 
+        relations_with_timestamps = filtered_ocel.events.merge(filtered_ocel.relations, on="ocel:eid", ).drop(columns=['company',
+       'payment_method', 'checker', 'spliter', 'picker', 'packer', 'storer',
+       'loader', 'logistics_company', 'ocel:activity_y', 'ocel:timestamp_y', 'ocel:type', 'ocel:qualifier'])
+        shipments_with_time_and_qty = relations_with_timestamps.merge(filtered_ocel.objects, on="ocel:oid")
+
+        for _,shipment in shipments_with_time_and_qty.iterrows():
+            self.shipment_schedule.append(Shipment(order_id=order.id, quantity=shipment["amount"], delivery_date=shipment["ocel:timestamp_x"].to_pydatetime()))
     def simulate_deliveries(self):
         # 1. receive any delivereies
             for shipment in self.shipment_schedule:
-                if shipment.delivery_date == self.current_date:
+                if shipment.delivery_date.date() == self.current_date.date():
                     self.warehouse.receive_shipment(shipment=shipment, date=self.current_date)
                     self.shipment_schedule.remove(shipment)
 
