@@ -318,7 +318,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     # Create events for the log
     events = [
         {
-            "id": f"e_{iteration}_1",
+            "id": f"e_{iteration}_1_{company}",
             "type": "Place Order",
             "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -340,7 +340,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             ],
         },
         {
-            "id": f"e_{iteration}_2",
+            "id": f"e_{iteration}_2_{company}",
             "type": "Send Invoice",
             "time": send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -358,7 +358,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
         },
         {
-            "id": f"e_{iteration}_3",
+            "id": f"e_{iteration}_3_{company}",
             "type": "Receive Payment",
             "time": receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -403,7 +403,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
         # Add the "Check Availability" event
         events.append({
-            "id": f"e_{iteration}_{i}_4",
+            "id": f"e_{iteration}_{i}_4_{company}",
             "type": "Check Availability",
             "time": check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -464,7 +464,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             split_item_timestamp = check_availability_timestamp + timedelta(days=1)
 
             events.append({
-                "id": f"e_{iteration}_{i}_5",
+                "id": f"e_{iteration}_{i}_5_{company}",
                 "type": "Split Item",
                 "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
                 "attributes": [
@@ -547,7 +547,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 minutes=random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
-                "id": f"e_{iteration}_{i}_6",
+                "id": f"e_{iteration}_{i}_6_{company}",
                 "type": "Pick Item",
                 "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
 
@@ -571,7 +571,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 minutes=random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
-                "id": f"e_{iteration}_{i}_7",
+                "id": f"e_{iteration}_{i}_7_{company}",
                 "type": "Pick Item",
                 "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
                 "attributes": [
@@ -619,7 +619,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
         # Add the "Pack Items" activity
         events.append({
-            "id": f"e_{iteration}_{i}_8",
+            "id": f"e_{iteration}_{i}_8_{company}",
             "type": "Pack Items",
             "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -642,7 +642,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         store_package_timestamp = adjust_to_working_hours(store_package_timestamp)
         # Add the "Store Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_9",
+            "id": f"e_{iteration}_{i}_9_{company}",
             "type": "Store Package",
             "time": store_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -666,7 +666,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         load_package_timestamp = adjust_to_working_hours(load_package_timestamp)
         # Add the "Load Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_10",
+            "id": f"e_{iteration}_{i}_10_{company}",
             "type": "Load Package",
             "time": load_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -688,7 +688,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         deliver_package_timestamp = load_package_timestamp + timedelta(days=random.randint(3, 6))  # 3 to 6 days
         # Add the "Deliver Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_11",
+            "id": f"e_{iteration}_{i}_11_{company}",
             "type": "Deliver Package",
             "time": deliver_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
