@@ -76,15 +76,15 @@ def adjust_to_working_hours(timestamp):
 
     return timestamp
 
-
-def distribute_values(func, time_slots, target_sum, fixed_values=None):
+def distribute_values(func, time_slots, target_sum):
     """
-    Distributes values based on a given function and adapts to changed target values while maintaining the original function's shape.
+    Distributes values based on a given function and adapts to target values while maintaining the original function's shape.
+    Ensures that no value falls below a threshold (Amount * normalized value >= 1).
+    Prioritizes reducing values that are closer to their target based on the function.
 
     :param func: The mathematical function (e.g., lambda x: x**2)
-    :param time_slots: Number of time slots
+    :param time_slots: Number of time slots (del_days)
     :param target_sum: Target value to be reached
-    :param fixed_values: Already fixed values {index: value}
     :return: List of calculated values
     """
     x_values = np.arange(1, time_slots + 1)
@@ -92,74 +92,58 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
 
     print("Initial function values:", y_values)
 
+    # Shift values to make them positive
     if np.isscalar(y_values):
         y_values = np.full_like(x_values, y_values)
 
-    is_decreasing = y_values[0] > y_values[-1]
-    print("Is function decreasing:", is_decreasing)
-
     min_val, max_val = np.min(y_values), np.max(y_values)
-    y_values = y_values - min_val + 1
+    y_values = y_values - min_val + 1  # Shift to positive values
     print("Shifted function values (positive):", y_values)
 
+    # Normalize function values so that their sum is 1
     normalized_y_values = y_values / np.sum(y_values)
     print("Normalized function values (sum=1):", normalized_y_values)
     print("Sum of normalized values:", np.sum(normalized_y_values))
 
-    fixed_values = fixed_values or {}
-    fixed_sum = sum(fixed_values.values())
-    remaining_target = max(0, target_sum - fixed_sum)
-    print("Fixed values:", fixed_values)
-    print("Remaining target sum:", remaining_target)
+    # Adjust the values to match the target sum
+    adjusted_values = np.floor(target_sum * normalized_y_values).astype(int)
+    print("Adjusted values (before threshold check):", adjusted_values)
 
-    # Scale the normalized values based on the target sum
-    scaled_y_values = np.round(normalized_y_values * target_sum).astype(int)
-    print("Scaled function values before correction:", scaled_y_values)
-    print("Sum of scaled values before rounding correction:", np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum)
+    # Ensure no value is below 1
+    adjusted_values = np.maximum(adjusted_values, 1)
+    print("Adjusted values (after threshold check):", adjusted_values)
 
-    # Calculate the total sum of scaled values and the difference from target_sum
-    total_sum = np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum
-    diff = target_sum - total_sum
-    print("Difference from target_sum:", diff)
+    # Calculate the surplus
+    total_adjusted = np.sum(adjusted_values)
+    surplus = target_sum - total_adjusted
+    print("Surplus to distribute:", surplus)
 
-    if diff != 0:
-        # Adjust the last value to match the target sum exactly
-        adjustable_indices = np.arange(len(scaled_y_values))[len(fixed_values):]
-        sorted_adjustment_indices = adjustable_indices[np.argsort(-normalized_y_values[len(fixed_values):])]
-        i = 0
-        while diff != 0 and len(sorted_adjustment_indices) > 0:
-            index = sorted_adjustment_indices[i % len(sorted_adjustment_indices)]
-            scaled_y_values[index] += np.sign(diff)
-            diff -= np.sign(diff)
-            i += 1
+    # If surplus is negative, reduce values with the smallest difference to their target
+    if surplus < 0:
+        differences = (target_sum * normalized_y_values - adjusted_values)  # Difference to max value
+        indices_to_reduce = np.argsort(differences)  # Indices of values with the smallest difference
 
-    # Ensure all values are at least 1
-    scaled_y_values = np.maximum(1, scaled_y_values)
+        for i in indices_to_reduce:
+            if adjusted_values[i] > 1:  # Only reduce values greater than 1
+                adjusted_values[i] -= 1
+                surplus += 1  # Decrease surplus
+                if surplus == 0:
+                    break  # Exit when surplus is fully adjusted
 
-    print("Adjusted scaled values:", scaled_y_values)
-    print("Sum of scaled values after rounding correction:", np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum)
+    # Distribute the surplus if it's positive
+    if surplus > 0:
+        while surplus > 0:
+            for i in range(time_slots):
+                if adjusted_values[i] < target_sum * normalized_y_values[i]:
+                    adjusted_values[i] += 1
+                    surplus -= 1
+                    if surplus == 0:
+                        break
 
-    if is_decreasing:
-        scaled_y_values = np.sort(scaled_y_values)[::-1]
-    print("Final sorted values:", scaled_y_values)
+    print("Final adjusted values:", adjusted_values)
+    print("Sum of final result:", np.sum(adjusted_values))
 
-    result = [None] * time_slots
-    for i in fixed_values:
-        result[i - 1] = fixed_values[i]
-    print("Result with fixed values:", result)
-
-    for i in range(time_slots):
-        if result[i] is None:
-            result[i] = scaled_y_values[i]
-    print("Final result:", result)
-    print("Sum of final result:", sum(result))
-
-    # Adjust the last entry to ensure the total sum is exactly target_sum
-    result[-1] += target_sum - sum(result)
-    print("Final adjusted result with corrected last entry:", result)
-    print("Final sum after correction:", sum(result))
-
-    return result
+    return adjusted_values.tolist()
 
 
 # Function to generate OCEL event log
@@ -721,7 +705,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
 # Example usage of the function
 start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = 150  # Example amount for the order
+amount = 13  # Example amount for the order
 func = lambda x: x ** 2  # Example function for distributing the amount over time
 del_days = 10  # Test with 10 days
 
