@@ -112,30 +112,23 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
     print("Fixed values:", fixed_values)
     print("Remaining target sum:", remaining_target)
 
-    # Scale the normalized values based on the target sum
     scaled_y_values = np.round(normalized_y_values * target_sum).astype(int)
     print("Scaled function values before correction:", scaled_y_values)
     print("Sum of scaled values before rounding correction:", np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum)
 
-    # Calculate the total sum of scaled values and the difference from target_sum
-    total_sum = np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum
-    diff = target_sum - total_sum
-    print("Difference from target_sum:", diff)
-
+    diff = target_sum - (np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum)
     if diff != 0:
-        # Adjust the last value to match the target sum exactly
         adjustable_indices = np.arange(len(scaled_y_values))[len(fixed_values):]
         sorted_adjustment_indices = adjustable_indices[np.argsort(-normalized_y_values[len(fixed_values):])]
         i = 0
         while diff != 0 and len(sorted_adjustment_indices) > 0:
-            index = sorted_adjustment_indices[i % len(sorted_adjustment_indices)]
+            index = sorted_adjustment_indices[
+                i % len(sorted_adjustment_indices)]
             scaled_y_values[index] += np.sign(diff)
             diff -= np.sign(diff)
             i += 1
 
-    # Ensure all values are at least 1
     scaled_y_values = np.maximum(1, scaled_y_values)
-
     print("Adjusted scaled values:", scaled_y_values)
     print("Sum of scaled values after rounding correction:", np.sum(scaled_y_values[len(fixed_values):]) + fixed_sum)
 
@@ -145,7 +138,7 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
 
     result = [None] * time_slots
     for i in fixed_values:
-        result[i - 1] = fixed_values[i]
+        result[i-1] = fixed_values[i]
     print("Result with fixed values:", result)
 
     for i in range(time_slots):
@@ -154,10 +147,10 @@ def distribute_values(func, time_slots, target_sum, fixed_values=None):
     print("Final result:", result)
     print("Sum of final result:", sum(result))
 
-    # Adjust the last entry to ensure the total sum is exactly target_sum
-    result[-1] += target_sum - sum(result)
-    print("Final adjusted result with corrected last entry:", result)
-    print("Final sum after correction:", sum(result))
+    # # Adjust the last entry to ensure the total sum is exactly target_sum
+    # result[-1] += target_sum - sum(result)
+    # print("Final adjusted result with corrected last entry:", result)
+    # print("Final sum after correction:", sum(result))
 
     return result
 
@@ -291,7 +284,15 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     receive_payment_timestamp = send_invoice_timestamp + generate_random_timedelta(1, 7)  # 1-7 days for payment
 
     # Distribute values for the amount to determine when to check availability
-    check_availability_days = distribute_values(func, del_days, amount)
+    check_availability_days = {}
+    for i in range(del_days):
+        new_day_distribution = distribute_values(func, del_days, amount, check_availability_days)
+        check_availability_days[i] = new_day_distribution[i]
+
+    check_availability_days = [check_availability_days[key] for key in sorted(check_availability_days.keys())]
+
+    print(check_availability_days)
+    print(sum(check_availability_days))
 
     order_object = {
         "id": order_id,
@@ -721,9 +722,9 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
 # Example usage of the function
 start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = 150  # Example amount for the order
+amount = 100  # Example amount for the order
 func = lambda x: x ** 2  # Example function for distributing the amount over time
-del_days = 10  # Test with 10 days
+del_days = 90  # Test with 10 days
 
 # Generate the OCEL event log
 ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
