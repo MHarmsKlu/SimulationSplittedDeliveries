@@ -19,7 +19,7 @@ def convert_int64_to_int(obj):
 
 
 # Function to save the OCEL log in JSON format
-def save_ocel_log_to_json(ocel_log, start_date):
+def save_ocel_log_to_json(ocel_log, start_date, verbose=False):
     # Convert any np.int64 values to regular Python int
     ocel_log = convert_int64_to_int(ocel_log)
 
@@ -38,11 +38,12 @@ def save_ocel_log_to_json(ocel_log, start_date):
         json.dump(ocel_log, f, indent=4)
 
     # Print the path where the OCEL log has been saved
-    print(f"OCEL Log saved at: {file_path}")
+    if verbose:
+        print(f"OCEL Log saved at: {file_path}")
 
 
 # Helper function to generate random timedelta in a realistic working day range
-def generate_random_timedelta(min_days, max_days, min_hours=8, max_hours=17):
+def generate_random_timedelta(min_days, max_days, min_hours=8, max_hours=17, verbose=False):
     """
     Generate a random timedelta with a random number of days between `min_days` and `max_days`
     and random hours between `min_hours` and `max_hours` (within working hours).
@@ -76,7 +77,7 @@ def adjust_to_working_hours(timestamp):
 
     return timestamp
 
-def distribute_values(func, time_slots, target_sum):
+def distribute_values(func, time_slots, target_sum, verbose=False):
     """
     Distributes values based on a given function and adapts to target values while maintaining the original function's shape.
     Ensures that no value falls below a threshold (Amount * normalized value >= 1).
@@ -90,7 +91,8 @@ def distribute_values(func, time_slots, target_sum):
     x_values = np.arange(1, time_slots + 1)
     y_values = np.array([func(x) for x in x_values])
 
-    print("Initial function values:", y_values)
+    if verbose:
+        print("Initial function values:", y_values)
 
     # Shift values to make them positive
     if np.isscalar(y_values):
@@ -98,25 +100,31 @@ def distribute_values(func, time_slots, target_sum):
 
     min_val, max_val = np.min(y_values), np.max(y_values)
     y_values = y_values - min_val + 1  # Shift to positive values
-    print("Shifted function values (positive):", y_values)
+    if verbose:
+        print("Shifted function values (positive):", y_values)
 
     # Normalize function values so that their sum is 1
     normalized_y_values = y_values / np.sum(y_values)
-    print("Normalized function values (sum=1):", normalized_y_values)
-    print("Sum of normalized values:", np.sum(normalized_y_values))
+    if verbose:
+        print("Normalized function values (sum=1):", normalized_y_values)
+    if verbose:
+        print("Sum of normalized values:", np.sum(normalized_y_values))
 
     # Adjust the values to match the target sum
     adjusted_values = np.floor(target_sum * normalized_y_values).astype(int)
-    print("Adjusted values (before threshold check):", adjusted_values)
+    if verbose:
+        print("Adjusted values (before threshold check):", adjusted_values)
 
     # Ensure no value is below 1
     adjusted_values = np.maximum(adjusted_values, 1)
-    print("Adjusted values (after threshold check):", adjusted_values)
+    if verbose:
+        print("Adjusted values (after threshold check):", adjusted_values)
 
     # Calculate the surplus
     total_adjusted = np.sum(adjusted_values)
     surplus = target_sum - total_adjusted
-    print("Surplus to distribute:", surplus)
+    if verbose:
+        print("Surplus to distribute:", surplus)
 
     # If surplus is negative, reduce values with the smallest difference to their target
     if surplus < 0:
@@ -140,14 +148,15 @@ def distribute_values(func, time_slots, target_sum):
                     if surplus == 0:
                         break
 
-    print("Final adjusted values:", adjusted_values)
-    print("Sum of final result:", np.sum(adjusted_values))
+    if verbose:
+        print("Final adjusted values:", adjusted_values)
+        print("Sum of final result:", np.sum(adjusted_values))
 
     return adjusted_values.tolist()
 
 
 # Function to generate OCEL event log
-def generate_ocel_event_log(start_date, amount, func, del_days, iteration, company="company_1"):
+def generate_ocel_event_log(start_date, amount, func, del_days, iteration, company="company_1", verbose=False):
 
     object_types = [
         {
@@ -405,8 +414,9 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         })
 
         # Debugging print statement to track the process
-        print(f"Checking availability for item {last_item_id} at {check_availability_timestamp}")
-        print(f"Cumulative available amount (del_amount): {del_amount}")
+        if verbose:
+            print(f"Checking availability for item {last_item_id} at {check_availability_timestamp}")
+            print(f"Cumulative available amount (del_amount): {del_amount}")
 
         # Check if del_amount is still less than the total amount
         if del_amount < amount:
@@ -415,7 +425,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             new_item_id_2 = f"item_{iteration}_{random.randint(1000, 9999)}"
 
             # Print debug for Split Item
-            print(f"Split Item triggered! New item IDs: {new_item_id_1}, {new_item_id_2}")
+            if verbose:
+                print(f"Split Item triggered! New item IDs: {new_item_id_1}, {new_item_id_2}")
 
 
             item_object = {
@@ -548,7 +559,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                     }
                 ]
             })
-            print(f"Pick Item activity for {new_item_id_2} after Split Item at {pick_item_timestamp}")
+            if verbose:
+                print(f"Pick Item activity for {new_item_id_2} after Split Item at {pick_item_timestamp}")
         else:
             # If no Split Item occurred, use the item_id from Check Availability for Pick Item
             pick_item_timestamp = check_availability_timestamp + timedelta(
@@ -571,7 +583,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                     }
                 ]
             })
-            print(f"Pick Item activity for {last_item_id} after Check Availability at {pick_item_timestamp}")
+            if verbose:
+                print(f"Pick Item activity for {last_item_id} after Check Availability at {pick_item_timestamp}")
 
         # After Pick Item, execute the "Pack Items" activity
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=random.randint(5, 60))  # 5 minutes to 1 hour
@@ -619,7 +632,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 }
             ]
         })
-        print(f"Pack Items activity for {last_item_id} with package {package_id} at {pack_items_timestamp}")
+        if verbose:
+            print(f"Pack Items activity for {last_item_id} with package {package_id} at {pack_items_timestamp}")
 
         # After Pack Items, execute the "Store Package" activity
         store_package_timestamp = pack_items_timestamp + timedelta(minutes=random.randint(5, 20))  # 5 to 20 minutes
@@ -642,7 +656,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 }
             ]
         })
-        print(f"Store Package activity for {package_id} at {store_package_timestamp}")
+        if verbose:
+            print(f"Store Package activity for {package_id} at {store_package_timestamp}")
 
         # After Store Package, execute the "Load Package" activity
         load_package_timestamp = store_package_timestamp + timedelta(
@@ -666,7 +681,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 }
             ]
         })
-        print(f"Load Package activity for {package_id} at {load_package_timestamp}")
+        if verbose:
+            print(f"Load Package activity for {package_id} at {load_package_timestamp}")
 
         # After Load Package, execute the "Deliver Package" activity
         deliver_package_timestamp = load_package_timestamp + timedelta(days=random.randint(3, 6))  # 3 to 6 days
@@ -688,7 +704,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 }
             ]
         })
-        print(f"Deliver Package activity for {package_id} at {deliver_package_timestamp}")
+        if verbose:
+            print(f"Deliver Package activity for {package_id} at {deliver_package_timestamp}")
 
     ocel_log = {
         "objectTypes": object_types,
@@ -698,7 +715,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     }
 
     # Save the OCEL log as a JSON file
-    save_ocel_log_to_json(ocel_log, start_date)
+    save_ocel_log_to_json(ocel_log, start_date,verbose)
 
     return ocel_log
 
@@ -718,4 +735,4 @@ pd.set_option('display.max_columns', None)  # Display all columns
 pd.set_option('display.max_colwidth', None)  # Ensure that full content of each column is displayed
 
 # Print the generated DataFrame to console
-print(ocel_event_log)
+#print(ocel_event_log)

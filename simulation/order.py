@@ -19,7 +19,8 @@ class Order:
             self.completed = shipment.delivery_date
 
 class Shipment:
-    def __init__(self, order_id,quantity, delivery_date):
+    def __init__(self,ship_id, order_id,quantity, delivery_date):
+        self.ship_id = ship_id
         self.order_id = order_id
         self.quantity = quantity
         self.delivery_date = delivery_date

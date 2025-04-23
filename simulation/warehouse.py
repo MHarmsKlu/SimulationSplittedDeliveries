@@ -59,7 +59,7 @@ class Warehouse:
 
     def evaluate_order(self,order):
         if self.kpi == "order_completion":
-            order_performance  = order.completed - order.placed
+            order_performance  = order.completed.date() - order.placed.date()
         
         # elif kpi == "effective_lt_per_good":
         #     weighted_times = []

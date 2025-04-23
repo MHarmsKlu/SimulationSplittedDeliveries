@@ -5,7 +5,7 @@ from datetime import date, time, datetime
 
 warehouse = Warehouse(
      init_rop = 50,
-     init_eoq = 100,
+     init_eoq = 500,
      order_base_cost = 50,
      order_piece_cost = 5,
      holding_cost = 10 , 
