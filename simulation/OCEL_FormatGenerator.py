@@ -385,10 +385,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     # Loop through all the `Check Availability` events
     for i, check_day in enumerate(check_availability_days):
         # Calculate the timestamp for the next "Check Availability"
-        check_day = int(check_day)
-        check_availability_timestamp = last_check_timestamp + timedelta(days=check_day)
-        check_availability_timestamp = adjust_to_weekday(check_availability_timestamp)
-        check_availability_timestamp += generate_random_timedelta(0, 1)  # Add a random time offset
+        check_availability_timestamp = last_check_timestamp
+        check_availability_timestamp += generate_random_timedelta(1, 7)  # Add a random time offset
         check_availability_timestamp = adjust_to_working_hours(check_availability_timestamp)
 
         # Add the current available amount to del_amount
