@@ -720,19 +720,19 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     return ocel_log
 
 
-# Example usage of the function
-start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = 13  # Example amount for the order
-func = lambda x: x ** 2  # Example function for distributing the amount over time
-del_days = 10  # Test with 10 days
+# # Example usage of the function
+# start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
+# amount = 13  # Example amount for the order
+# func = lambda x: x ** 2  # Example function for distributing the amount over time
+# del_days = 10  # Test with 10 days
 
-# Generate the OCEL event log
-ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
+# # Generate the OCEL event log
+# ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
 
-# Set pandas options to display all rows and columns
-pd.set_option('display.max_rows', None)  # Display all rows
-pd.set_option('display.max_columns', None)  # Display all columns
-pd.set_option('display.max_colwidth', None)  # Ensure that full content of each column is displayed
+# # Set pandas options to display all rows and columns
+# pd.set_option('display.max_rows', None)  # Display all rows
+# pd.set_option('display.max_columns', None)  # Display all columns
+# pd.set_option('display.max_colwidth', None)  # Ensure that full content of each column is displayed
 
-# Print the generated DataFrame to console
-#print(ocel_event_log)
+# # Print the generated DataFrame to console
+# #print(ocel_event_log)

@@ -1,4 +1,5 @@
 import numpy as np
+import statistics as st
 from datetime import datetime, date, time, timedelta
 from warehouse import Warehouse
 from order import Order, Shipment
@@ -20,8 +21,11 @@ class Simulation:
         self.std_daily_demand = std_daily_demand
         self.delivery_func = delivery_func
         self.shipment_schedule = []
-        self.inventory_history = []
+        self.inventory_history_on_hand = []
+        self.inventory_history_in_transit = []
+        self.inventory_history_total = []
         self.past_rops=[]
+        self.past_eoqs=[]
         self.backorders = 0
         self.fulfilled_demand = 0
         self.total_demand = 0
@@ -29,8 +33,9 @@ class Simulation:
 
     
     def simulate_order(self, order):
-        print("generate order")
-        delivery_days = max(1, int(np.random.normal(order.quantity/10, order.quantity/100)))
+        print(f"generate order {order.id} with quantity {order.quantity}")
+        # delivery_days = max(1, int(np.random.normal(order.quantity/10, order.quantity/100)))
+        delivery_days = max(1, int(np.random.normal(1, 1)))
         generate_ocel_event_log(start_date=self.current_date, amount=order.quantity, func=self.delivery_func, iteration=order.id, del_days=delivery_days)
         
         date_str = adjust_to_weekday(self.current_date).strftime("%Y-%m-%d")
@@ -56,31 +61,33 @@ class Simulation:
                     self.shipment_schedule.remove(shipment)
 
     def simulate_demand(self):
-        demand_today = max(0, int(np.random.normal(self.mean_daily_demand, self.std_daily_demand)))
-            
-        self.total_demand += demand_today   
+        demand_today = max(0, int(np.random.normal(self.mean_daily_demand, self.std_daily_demand))) 
         fulfilled_demand_today, backorders_today = self.warehouse.consume_inventory(self.current_date, demand_today)
         
-        self.fulfilled_demand += fulfilled_demand_today
-        self.backorders += backorders_today
-
-        inventory_today, order = self.warehouse.monitor_inventory(self.current_date)
-
+        order = self.warehouse.monitor_inventory(self.current_date)
         if order:
             self.simulate_order(order)
-              
-        self.past_rops.append(self.warehouse.rop)
-        self.inventory_history.append(inventory_today)
+        
+        return demand_today, fulfilled_demand_today, backorders_today       
     
     def run(self):
+        print(f'start sim at {self.current_date}')
         for day in range(self.days):
             self.current_date = self.start_date + timedelta(days=day)
 
             self.simulate_deliveries()
-            self.simulate_demand()
+            demand_today, fulfilled_demand_today, backorders_today = self.simulate_demand()
             
-            
-            
+            self.total_demand += demand_today
+            self.fulfilled_demand += fulfilled_demand_today
+            self.backorders += backorders_today   
+
+            self.past_rops.append(self.warehouse.rop)
+            self.past_eoqs.append(self.warehouse.eoq)
+
+            self.inventory_history_on_hand.append(self.warehouse.inventory)
+            self.inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
+            self.inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
 
     def evaluate(self):
         # --- Results ---
@@ -92,11 +99,17 @@ class Simulation:
         print(f"Backorders: {self.backorders}")
         print(f"Orders placed: {self.warehouse.orders_placed}")
         print(f"Service level: {service_level:.2%}")
+        print("warehouse stats:")
+        print(f'mean order_performance: {st.mean(self.warehouse.order_performances)}')
+        print(f'mean order size: {st.mean(self.warehouse.order_sizes)}')
 
         # --- Visualization ---
         plt.figure(figsize=(12, 6))
-        plt.plot(self.inventory_history, label='Inventory Level')
+        plt.plot(self.inventory_history_on_hand, label='Inventory On hand')
+        #plt.plot(self.inventory_history_in_transit, label='Inventory in transit')
+        plt.plot(self.inventory_history_total, label='Total Inventory')
         plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
+        plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
         # plt.axhline(y=self.warehouse.rop, color='r', linestyle='--', label='Reorder Point')
         plt.title('Inventory Level Over Time')
         plt.xlabel('Day')

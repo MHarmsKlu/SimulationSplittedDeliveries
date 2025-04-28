@@ -7,12 +7,14 @@ import math
 class Warehouse:
     def __init__(self, init_rop, init_eoq, order_base_cost, order_piece_cost, holding_cost, init_level, kpi ):
         self.inventory = init_level
+        self.inventory_in_transit = 0
         self.rop = init_rop
         self.eoq = init_eoq
         self.kpi = kpi
         self.wait_for_order = False
         self.open_orders = []
         self.order_performances = []
+        self.order_sizes = []
         self.past_demand = []
         self.past_eoqs = [init_eoq]
         self.order_base_cost = order_base_cost
@@ -23,25 +25,28 @@ class Warehouse:
     def monitor_inventory(self, date):
         if self.inventory <= self.rop and self.wait_for_order==False:
             print(f'Need to reorder at {date}')
-            #todo add reorder functionality
+            
             self.wait_for_order = True
+            self.update_eoq()
+            self.order_sizes.append(self.eoq)
             order = Order(id=self.orders_placed,  order_placed=date, quantity=self.eoq )
             self.open_orders.append(order)
             self.orders_placed += 1
-            return self.inventory, order
+            self.inventory_in_transit = order.quantity
+            return order
         else:
-            return self.inventory, False
+            return False
     
     def consume_inventory(self, date, demand):
         self.past_demand.append(demand)
         backorders = 0
         fulfilled_demand = 0
         if self.inventory >= demand:
-            print(f'consuming {demand} goods at {date}')
+            #print(f'consuming {demand} goods at {date}')
             self.inventory -= demand
             fulfilled_demand = demand
         else: 
-            print(f'not enough inventory at {date}')
+            #print(f'not enough inventory at {date}')
             fulfilled_demand = self.inventory
             backorders = demand - self.inventory
             self.inventory = 0
@@ -54,7 +59,10 @@ class Warehouse:
                 order.update(shipment)
                 if order.complete:
                     self.evaluate_order(order)
+                else:
+                    print("here")
         self.inventory += shipment.quantity
+        self.inventory_in_transit -= shipment.quantity
         return self.inventory
 
     def evaluate_order(self,order):
@@ -74,14 +82,14 @@ class Warehouse:
         self.wait_for_order = False
     
     def update_eoq(self):
-        mean_order_costs = self.order_base_cost + (self.order_piece_cost * st.mean(self.past_eoqs))
+        #mean_order_costs = self.order_base_cost + (self.order_piece_cost * st.mean(self.past_eoqs))
         self.past_eoqs.append(self.eoq)
-        self.eoq =  int(math.sqrt((2*st.mean(self.past_demand)* mean_order_costs)/self.holding_cost))
+        self.eoq =  int(math.sqrt((2*365*st.mean(self.past_demand)* self.order_base_cost)/self.holding_cost))
 
     def update_rop(self):
         
         if self.kpi == "order_completion":
-            self.rop = st.mean(self.order_performances) * st.mean(self.past_demand)
+            self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + 500
         # if kpi_type == "effective_lt_per_good":
         #     self.roq = st.mean(self.past_order_data) * (self.consumption_rate / self.consumption_interval)
         #     self.rop = 2 * self.roq
