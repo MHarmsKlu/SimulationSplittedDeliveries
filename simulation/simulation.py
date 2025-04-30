@@ -10,7 +10,7 @@ import time
 
 class Simulation:
     def __init__(
-        self, start_date, days, warehouse, seed, mean_daily_demand,std_daily_demand,delivery_func ):
+        self, start_date, days, warehouse, seed, mean_daily_demand,std_daily_demand,delivery_func, delivery_split_centre, delivery_split_std ):
         
         self.start_date = start_date
         self.current_date = start_date
@@ -20,6 +20,8 @@ class Simulation:
         self.mean_daily_demand = mean_daily_demand
         self.std_daily_demand = std_daily_demand
         self.delivery_func = delivery_func
+        self.delivery_split_centre = delivery_split_centre
+        self.delivery_split_std = delivery_split_std 
         self.shipment_schedule = []
         self.inventory_history_on_hand = []
         self.inventory_history_in_transit = []
@@ -34,8 +36,7 @@ class Simulation:
     
     def simulate_order(self, order):
         print(f"generate order {order.id} with quantity {order.quantity}")
-        # delivery_days = max(1, int(np.random.normal(order.quantity/10, order.quantity/100)))
-        delivery_days = max(1, int(np.random.normal(1, 1)))
+        delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
         generate_ocel_event_log(start_date=self.current_date, amount=order.quantity, func=self.delivery_func, iteration=order.id, del_days=delivery_days)
         
         date_str = adjust_to_weekday(self.current_date).strftime("%Y-%m-%d")
@@ -110,7 +111,7 @@ class Simulation:
         plt.plot(self.inventory_history_total, label='Total Inventory')
         plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
         plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
-        # plt.axhline(y=self.warehouse.rop, color='r', linestyle='--', label='Reorder Point')
+        plt.axhline(y=self.warehouse.safety_stock, color='g', linestyle='--', label='safety stock')
         plt.title('Inventory Level Over Time')
         plt.xlabel('Day')
         plt.ylabel('Inventory')
