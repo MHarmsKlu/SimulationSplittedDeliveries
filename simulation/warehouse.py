@@ -5,26 +5,26 @@ import math
 
 
 class Warehouse:
-    def __init__(self, init_rop, init_eoq,safety_stock, order_base_cost, holding_cost, init_level, kpi ):
-        self.inventory = init_level
+    def __init__(self, config:dict ):
+        
+        keys={'rop', 'eoq','service_level', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose'}
+        
+        for key in keys:
+            setattr(self, key, config.get(key))
+        
         self.inventory_in_transit = 0
-        self.rop = init_rop
-        self.eoq = init_eoq
-        self.safety_stock =  safety_stock
-        self.kpi = kpi
+        self.safety_stock =  0
         self.wait_for_order = False
         self.open_orders = []
         self.order_performances = []
         self.order_sizes = []
         self.past_demand = []
-        self.past_eoqs = [init_eoq]
-        self.order_base_cost = order_base_cost
-        self.holding_cost = holding_cost
         self.orders_placed = 0
     
     def monitor_inventory(self, date):
         if self.inventory <= self.rop and self.wait_for_order==False:
-            print(f'Need to reorder at {date}')
+            if self.verbose:
+                print(f'Need to reorder at {date}')
             
             self.wait_for_order = True
             self.update_eoq()
@@ -53,7 +53,8 @@ class Warehouse:
         return fulfilled_demand, backorders
 
     def receive_shipment(self, date, shipment):
-        print(f"incoming {shipment.quantity} goods at {date}")
+        if self.verbose:
+            print(f"incoming {shipment.quantity} goods at {date}")
         for order in self.open_orders:
             if order.id == shipment.order_id:
                 order.update(shipment)
@@ -65,29 +66,30 @@ class Warehouse:
 
     def evaluate_order(self,order):
         if self.kpi == "order_completion":
-            order_performance  = order.completed.date() - order.placed.date()
-        
-        # elif kpi == "effective_lt_per_good":
-        #     weighted_times = []
-        #     for partial in order:
-        #         weighted_times.append(partial["time"] * partial["quantity"])
-        #     order_performance = sum(weighted_times)/self.order_quantity
+            order_performance  = (order.completed.date() - order.placed.date()).days
+        if self.kpi == "item_completion":
+            shipment_performances = []
+            for ship in order.shipments:
+                shipment_performances.append((ship.delivery_date.date() - order.placed.date()).days )
+            order_performance = st.mean(shipment_performances)
         
         self.open_orders.remove(order)
-        self.order_performances.append(order_performance.days)
+        self.order_performances.append(order_performance)
+        self.update_safety_stock()
         self.update_rop()
         self.update_eoq()
         self.wait_for_order = False
+
+    def update_safety_stock(self):
+        if len(self.order_performances) > 1:
+            self.safety_stock = self.service_level * math.sqrt((st.mean(self.order_performances)* st.stdev(self.past_demand)**2) + (st.mean(self.past_demand)*st.stdev(self.order_performances)**2))
     
     def update_eoq(self):
-        
-        self.past_eoqs.append(self.eoq)
         self.eoq =  int(math.sqrt((2*365*st.mean(self.past_demand)* self.order_base_cost)/self.holding_cost))
 
     def update_rop(self):
-        
         if self.kpi == "order_completion":
             self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
-        # if kpi_type == "effective_lt_per_good":
-        #     self.roq = st.mean(self.past_order_data) * (self.consumption_rate / self.consumption_interval)
-        #     self.rop = 2 * self.roq
+        if self.kpi == "item_completion":
+            self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
+

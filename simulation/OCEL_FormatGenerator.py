@@ -1,5 +1,5 @@
 import pandas as pd
-import random
+#import random
 import numpy as np
 from datetime import datetime, timedelta
 import json
@@ -48,9 +48,9 @@ def generate_random_timedelta(min_days, max_days, min_hours=8, max_hours=17, ver
     Generate a random timedelta with a random number of days between `min_days` and `max_days`
     and random hours between `min_hours` and `max_hours` (within working hours).
     """
-    days = random.randint(min_days, max_days)
-    hours = random.randint(min_hours, max_hours)
-    minutes = random.randint(0, 59)
+    days = np.random.randint(min_days, max_days)
+    hours = np.random.randint(min_hours, max_hours)
+    minutes = np.random.randint(0, 59)
     return timedelta(days=days, hours=hours, minutes=minutes)
 
 
@@ -69,11 +69,11 @@ def adjust_to_working_hours(timestamp):
 
     # Adjust the time if it's outside of working hours (08:00 to 17:00)
     if timestamp.hour < 8:
-        timestamp = timestamp.replace(hour=8, minute=random.randint(0, 59))
+        timestamp = timestamp.replace(hour=8, minute=np.random.randint(0, 59))
     elif timestamp.hour >= 17:
         # Move the timestamp to the next working day at a random time between 08:00 and 17:00
         timestamp += timedelta(days=1)
-        timestamp = timestamp.replace(hour=8, minute=random.randint(0, 59))
+        timestamp = timestamp.replace(hour=8, minute=np.random.randint(0, 59))
 
     return timestamp
 
@@ -272,8 +272,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     ]
 
     # Generate order_id for consistency across all activities
-    order_id = f"order_{iteration}_{random.randint(1000, 9999)}"
-    item_id = f"item_{iteration}_{random.randint(1000, 9999)}"
+    order_id = f"order_{iteration}_{np.random.randint(1000, 9999)}"
+    item_id = f"item_{iteration}_{np.random.randint(1000, 9999)}"
 
     # Adjust start date to ensure it's a weekday
     start_date = adjust_to_weekday(start_date)
@@ -361,7 +361,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 },
                 {
                     "name": "payment_method",
-                    "value": random.choice(payment_methods)
+                    "value": np.random.choice(payment_methods)
                 }
             ],
             "relationships": [
@@ -400,7 +400,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "attributes": [
                 {
                     "name": "checker",
-                    "value": random.choice(warehouse_employees)
+                    "value": np.random.choice(warehouse_employees)
                 }
             ],
             "relationships": [
@@ -419,8 +419,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         # Check if del_amount is still less than the total amount
         if del_amount < amount:
             # Trigger Split Item if the condition is met
-            new_item_id_1 = f"item_{iteration}_{random.randint(1000, 9999)}"
-            new_item_id_2 = f"item_{iteration}_{random.randint(1000, 9999)}"
+            new_item_id_1 = f"item_{iteration}_{np.random.randint(1000, 9999)}"
+            new_item_id_2 = f"item_{iteration}_{np.random.randint(1000, 9999)}"
 
             # Print debug for Split Item
             if verbose:
@@ -463,7 +463,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "attributes": [
                     {
                         "name": "spliter",
-                        "value": random.choice(warehouse_employees)
+                        "value": np.random.choice(warehouse_employees)
                     }
                 ],
                 "relationships": [
@@ -537,7 +537,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         if del_amount < amount:
             # If a Split Item occurred, use the new item_id_2 for Pick Item
             pick_item_timestamp = split_item_timestamp + timedelta(
-                minutes=random.randint(15, 180))  # 15 mins to 3 hours
+                minutes=np.random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
                 "id": f"e_{iteration}_{i}_6_{company}",
@@ -547,7 +547,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "attributes": [
                     {
                         "name": "picker",
-                        "value": random.choice(warehouse_employees)
+                        "value": np.random.choice(warehouse_employees)
                     }
                 ],
                 "relationships": [
@@ -562,7 +562,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         else:
             # If no Split Item occurred, use the item_id from Check Availability for Pick Item
             pick_item_timestamp = check_availability_timestamp + timedelta(
-                minutes=random.randint(15, 180))  # 15 mins to 3 hours
+                minutes=np.random.randint(15, 180))  # 15 mins to 3 hours
             pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
             events.append({
                 "id": f"e_{iteration}_{i}_7_{company}",
@@ -571,7 +571,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "attributes": [
                     {
                         "name": "picker",
-                        "value": random.choice(warehouse_employees)
+                        "value": np.random.choice(warehouse_employees)
                     }
                 ],
                 "relationships": [
@@ -585,10 +585,10 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 print(f"Pick Item activity for {last_item_id} after Check Availability at {pick_item_timestamp}")
 
         # After Pick Item, execute the "Pack Items" activity
-        pack_items_timestamp = pick_item_timestamp + timedelta(minutes=random.randint(5, 60))  # 5 minutes to 1 hour
+        pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(5, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
-        package_id = f"package_{iteration}_{random.randint(1000, 9999)}"  # Generate a random package ID
+        package_id = f"package_{iteration}_{np.random.randint(1000, 9999)}"  # Generate a random package ID
 
         package_object = {
             "id": package_id,
@@ -620,7 +620,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "attributes": [
                 {
                     "name": "packer",
-                    "value": random.choice(warehouse_employees)
+                    "value": np.random.choice(warehouse_employees)
                 }
             ],
             "relationships": [
@@ -634,7 +634,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             print(f"Pack Items activity for {last_item_id} with package {package_id} at {pack_items_timestamp}")
 
         # After Pack Items, execute the "Store Package" activity
-        store_package_timestamp = pack_items_timestamp + timedelta(minutes=random.randint(5, 20))  # 5 to 20 minutes
+        store_package_timestamp = pack_items_timestamp + timedelta(minutes=np.random.randint(5, 20))  # 5 to 20 minutes
         store_package_timestamp = adjust_to_working_hours(store_package_timestamp)
         # Add the "Store Package" activity
         events.append({
@@ -644,7 +644,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "attributes": [
                 {
                     "name": "storer",
-                    "value": random.choice(warehouse_employees)
+                    "value": np.random.choice(warehouse_employees)
                 }
             ],
             "relationships": [
@@ -659,7 +659,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
         # After Store Package, execute the "Load Package" activity
         load_package_timestamp = store_package_timestamp + timedelta(
-            minutes=random.randint(20, 360))  # 20 minutes to 6 hours
+            minutes=np.random.randint(20, 360))  # 20 minutes to 6 hours
         load_package_timestamp = adjust_to_working_hours(load_package_timestamp)
         # Add the "Load Package" activity
         events.append({
@@ -669,7 +669,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "attributes": [
                 {
                     "name": "loader",
-                    "value": random.choice(warehouse_employees)
+                    "value": np.random.choice(warehouse_employees)
                 }
             ],
             "relationships": [
@@ -683,7 +683,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             print(f"Load Package activity for {package_id} at {load_package_timestamp}")
 
         # After Load Package, execute the "Deliver Package" activity
-        deliver_package_timestamp = load_package_timestamp + timedelta(days=random.randint(3, 6))  # 3 to 6 days
+        deliver_package_timestamp = load_package_timestamp + timedelta(days=np.random.randint(3, 6))  # 3 to 6 days
         # Add the "Deliver Package" activity
         events.append({
             "id": f"e_{iteration}_{i}_11_{company}",
@@ -692,7 +692,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "attributes": [
                 {
                     "name": "logistics_company",
-                    "value": random.choice(shipping_companies)
+                    "value": np.random.choice(shipping_companies)
                 }
             ],
             "relationships": [

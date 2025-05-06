@@ -10,32 +10,39 @@ import time
 
 class Simulation:
     def __init__(
-        self, start_date, days, warehouse, seed, mean_daily_demand,std_daily_demand,delivery_func, delivery_split_centre, delivery_split_std ):
+        self, config:dict ):
+        keys= ['start_date', 'days', 'warehouse', 'seed', 'mean_daily_demand','std_daily_demand','delivery_func', 'delivery_split_centre', 'delivery_split_std', 'verbose']
+        for key in keys:
+            setattr(self, key, config.get(key))
+        # self.start_date = start_date
+        # self.current_date = start_date
+        # self.days = days
+        # self.warehouse = warehouse
+        # self.seed = seed
+        # self.mean_daily_demand = mean_daily_demand
+        # self.std_daily_demand = std_daily_demand
+        # self.delivery_func = delivery_func
+        # self.delivery_split_centre = delivery_split_centre
+        # self.delivery_split_std = delivery_split_std 
         
-        self.start_date = start_date
-        self.current_date = start_date
-        self.days = days
-        self.warehouse = warehouse
-        self.seed = np.random.seed(seed)
-        self.mean_daily_demand = mean_daily_demand
-        self.std_daily_demand = std_daily_demand
-        self.delivery_func = delivery_func
-        self.delivery_split_centre = delivery_split_centre
-        self.delivery_split_std = delivery_split_std 
+        self.current_date = self.start_date
         self.shipment_schedule = []
         self.inventory_history_on_hand = []
         self.inventory_history_in_transit = []
         self.inventory_history_total = []
         self.past_rops=[]
         self.past_eoqs=[]
+        self.past_safety_stock=[]
         self.backorders = 0
         self.fulfilled_demand = 0
         self.total_demand = 0
         self.out_of_stock = 0
+        self.total_holding_costs = 0
 
     
     def simulate_order(self, order):
-        print(f"generate order {order.id} with quantity {order.quantity}")
+        if self.verbose:
+            print(f"generate order {order.id} with quantity {order.quantity}")
         delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
         generate_ocel_event_log(start_date=self.current_date, amount=order.quantity, func=self.delivery_func, iteration=order.id, del_days=delivery_days)
         
@@ -72,7 +79,9 @@ class Simulation:
         return demand_today, fulfilled_demand_today, backorders_today       
     
     def run(self):
-        print(f'start sim at {self.current_date}')
+        np.random.seed(self.seed)
+        if self.verbose:
+            print(f'start sim at {self.current_date}')
         for day in range(self.days):
             self.current_date = self.start_date + timedelta(days=day)
 
@@ -81,8 +90,10 @@ class Simulation:
             
             self.total_demand += demand_today
             self.fulfilled_demand += fulfilled_demand_today
-            self.backorders += backorders_today   
+            self.backorders += backorders_today  
+            self.total_holding_costs += self.warehouse.inventory * (self.warehouse.holding_cost/365)
 
+            self.past_safety_stock.append(self.warehouse.safety_stock)
             self.past_rops.append(self.warehouse.rop)
             self.past_eoqs.append(self.warehouse.eoq)
 
@@ -90,20 +101,30 @@ class Simulation:
             self.inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
             self.inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
 
-    def evaluate(self):
+            if self.warehouse.inventory == 0:
+                self.out_of_stock += 1
+
+    def evaluate(self,report=False):
         # --- Results ---
-        service_level = self.fulfilled_demand / self.total_demand
+        self.results = {
+            'service_level' : self.fulfilled_demand / self.total_demand,
+            'total_demand' : self.total_demand,
+            'fulfilled_demand' : self.fulfilled_demand,
+            'backorders' : self.backorders,
+            'stock_outs' : self.out_of_stock,
+            'orders_placed' : self.warehouse.orders_placed,
+            'total_holding_costs' : self.total_holding_costs,
+            'total_inventory_on_hand' : sum(self.inventory_history_on_hand),
+            'mean_lead_time' : st.mean(self.warehouse.order_performances),
+            'mean_order_size' : st.mean(self.warehouse.order_sizes)
+        }
+        if report == True:
+            for key, value in self.results.items():
+                print(f"{key}: {value}")
 
-        print("--- Simulation Results ---")
-        print(f"Total demand: {self.total_demand}")
-        print(f"Fulfilled demand: {self.fulfilled_demand}")
-        print(f"Backorders: {self.backorders}")
-        print(f"Orders placed: {self.warehouse.orders_placed}")
-        print(f"Service level: {service_level:.2%}")
-        print("warehouse stats:")
-        print(f'mean order_performance: {st.mean(self.warehouse.order_performances)}')
-        print(f'mean order size: {st.mean(self.warehouse.order_sizes)}')
+        return self.results
 
+    def visualize(self):
         # --- Visualization ---
         plt.figure(figsize=(12, 6))
         plt.plot(self.inventory_history_on_hand, label='Inventory On hand')
@@ -111,7 +132,7 @@ class Simulation:
         plt.plot(self.inventory_history_total, label='Total Inventory')
         plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
         plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
-        plt.axhline(y=self.warehouse.safety_stock, color='g', linestyle='--', label='safety stock')
+        plt.plot(self.past_safety_stock, color='g', linestyle='--', label='safety stock')
         plt.title('Inventory Level Over Time')
         plt.xlabel('Day')
         plt.ylabel('Inventory')
@@ -120,6 +141,5 @@ class Simulation:
         plt.tight_layout()
         plt.show()
             
-
 
         
