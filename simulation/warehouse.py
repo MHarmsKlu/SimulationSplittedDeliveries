@@ -46,7 +46,8 @@ class Warehouse:
             self.inventory -= demand
             fulfilled_demand = demand
         else: 
-            #print(f'not enough inventory at {date}')
+            if self.verbose:
+                print(f'not enough inventory at {date}')
             fulfilled_demand = self.inventory
             backorders = demand - self.inventory
             self.inventory = 0
