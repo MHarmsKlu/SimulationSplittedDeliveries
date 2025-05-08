@@ -7,7 +7,7 @@ import numpy as np
 war_config = {
     'rop' : 500,
     'eoq' : 0,
-    'service_level': 0.95,
+    'z_score': 1.65,
     'order_base_cost' : 60,
     'holding_cost' : 1 , 
     'inventory' : 500,

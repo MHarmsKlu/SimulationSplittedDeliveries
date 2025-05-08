@@ -63,7 +63,7 @@ delivery_functions = [
 war_config = {
     'rop' : 500,
     'eoq' : 0,
-    'service_level': 0.95,
+    'z_score': 1.65,
     'order_base_cost' : 60,
     'holding_cost' : 1 , 
     'inventory' : 500,
@@ -72,7 +72,7 @@ war_config = {
 sim_config =  {
     'start_date' : datetime.now(),
     'days' : 1750,
-    'seed': 11,  
+    'seed': 1,  
     'mean_daily_demand' : 50,
     'std_daily_demand' : 1,
     'delivery_func' : lambda x: 100,

@@ -7,8 +7,8 @@ import math
 class Warehouse:
     def __init__(self, config:dict ):
         
-        keys={'rop', 'eoq','service_level', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose'}
-        
+        keys={'rop', 'eoq','z_score', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose'}
+        # z-score based on idea that lead times are normal distributed
         for key in keys:
             setattr(self, key, config.get(key))
         
@@ -83,7 +83,7 @@ class Warehouse:
 
     def update_safety_stock(self):
         if len(self.order_performances) > 1:
-            self.safety_stock = self.service_level * math.sqrt((st.mean(self.order_performances)* st.stdev(self.past_demand)**2) + (st.mean(self.past_demand)*st.stdev(self.order_performances)**2))
+            self.safety_stock = self.z_score * math.sqrt((st.mean(self.order_performances)* st.stdev(self.past_demand)**2) + (st.mean(self.past_demand)*st.stdev(self.order_performances)**2))
     
     def update_eoq(self):
         self.eoq =  int(math.sqrt((2*365*st.mean(self.past_demand)* self.order_base_cost)/self.holding_cost))

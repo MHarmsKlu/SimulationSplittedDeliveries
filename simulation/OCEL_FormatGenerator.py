@@ -77,7 +77,7 @@ def adjust_to_working_hours(timestamp):
 
     return timestamp
 
-def distribute_values(func, time_slots, target_sum, verbose=True):
+def distribute_values(func, time_slots, target_sum, verbose=False):
     """
     Distributes values based on a given function and adapts to target values while maintaining the original function's shape.
     Ensures that no value falls below a threshold (Amount * normalized value >= 1).
@@ -590,8 +590,6 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
         package_id = f"package_{iteration}_{np.random.randint(1000, 9999)}"  # Generate a random package ID
-        if package_id == "package_1_4795":
-            print("here")
         package_object = {
             "id": package_id,
             "type": "Package",
