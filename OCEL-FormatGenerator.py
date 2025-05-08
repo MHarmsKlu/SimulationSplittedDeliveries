@@ -41,6 +41,16 @@ def save_ocel_log_to_json(ocel_log, start_date):
     print(f"OCEL Log saved at: {file_path}")
 
 
+used_ids = set()
+
+def generate_unique_item_id(iteration):
+    while True:
+        rand_num = random.randint(1000, 9999)
+        item_id = f"item_{iteration}_{rand_num}"
+        if item_id not in used_ids:
+            used_ids.add(item_id)
+            return item_id
+
 # Helper function to generate random timedelta in a realistic working day range
 def generate_random_timedelta(min_days, max_days, min_hours=8, max_hours=17):
     """
@@ -105,41 +115,53 @@ def distribute_values(func, time_slots, target_sum):
     print("Normalized function values (sum=1):", normalized_y_values)
     print("Sum of normalized values:", np.sum(normalized_y_values))
 
-    # Adjust the values to match the target sum
-    adjusted_values = np.floor(target_sum * normalized_y_values).astype(int)
-    print("Adjusted values (before threshold check):", adjusted_values)
+    # Adjust the values using weighted rounding based on residuals
+    raw_values = target_sum * normalized_y_values
+    floored_values = np.floor(raw_values).astype(int)
+    residuals = raw_values - floored_values
 
-    # Ensure no value is below 1
-    adjusted_values = np.maximum(adjusted_values, 1)
-    print("Adjusted values (after threshold check):", adjusted_values)
+    # Ensure minimum value of 1
+    floored_values = np.maximum(floored_values, 1)
 
-    # Calculate the surplus
-    total_adjusted = np.sum(adjusted_values)
-    surplus = target_sum - total_adjusted
+    # Recalculate surplus after enforcing the minimum
+    surplus = target_sum - np.sum(floored_values)
+    print("Adjusted values (after floor and min check):", floored_values)
     print("Surplus to distribute:", surplus)
 
-    # If surplus is negative, reduce values with the smallest difference to their target
-    if surplus < 0:
-        differences = (target_sum * normalized_y_values - adjusted_values)  # Difference to max value
-        indices_to_reduce = np.argsort(differences)  # Indices of values with the smallest difference
-
-        for i in indices_to_reduce:
-            if adjusted_values[i] > 1:  # Only reduce values greater than 1
-                adjusted_values[i] -= 1
-                surplus += 1  # Decrease surplus
-                if surplus == 0:
-                    break  # Exit when surplus is fully adjusted
-
-    # Distribute the surplus if it's positive
+    # Distribute surplus based on highest residuals
     if surplus > 0:
-        while surplus > 0:
-            for i in range(time_slots):
-                if adjusted_values[i] < target_sum * normalized_y_values[i]:
-                    adjusted_values[i] += 1
-                    surplus -= 1
-                    if surplus == 0:
-                        break
+        indices = np.argsort(-residuals)  # descending order
+        for i in indices:
+            floored_values[i] += 1
+            surplus -= 1
+            if surplus == 0:
+                break
+    elif surplus < 0:
+        # Use normalized_y_values to determine proportional reduction weights
+        weights = normalized_y_values / np.sum(normalized_y_values)
+        # Invert weights so that higher values get reduced more
+        reduction_weights = weights / np.sum(weights)
 
+        # Compute desired number of reductions per index
+        total_reductions = -surplus
+        raw_reductions = total_reductions * reduction_weights
+        floored_reductions = np.floor(raw_reductions).astype(int)
+        residuals = raw_reductions - floored_reductions
+
+        # Distribute remaining reductions based on fractional parts
+        remainder = total_reductions - np.sum(floored_reductions)
+        extra_indices = np.argsort(-residuals)
+        for i in extra_indices[:remainder]:
+            floored_reductions[i] += 1
+
+        # Apply the reductions while ensuring no value goes below 1
+        for i in range(len(floored_values)):
+            max_reducible = floored_values[i] - 1
+            reduction = min(floored_reductions[i], max_reducible)
+            floored_values[i] -= reduction
+            surplus += reduction  # surplus is negative, so this moves toward zero
+
+    adjusted_values = floored_values
     print("Final adjusted values:", adjusted_values)
     print("Sum of final result:", np.sum(adjusted_values))
 
@@ -264,7 +286,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
     # Generate order_id for consistency across all activities
     order_id = f"order_{iteration}_{random.randint(1000, 9999)}"
-    item_id = f"item_{iteration}_{random.randint(1000, 9999)}"
+    item_id = generate_unique_item_id(iteration)
 
     # Adjust start date to ensure it's a weekday
     start_date = adjust_to_weekday(start_date)
@@ -409,8 +431,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         # Check if del_amount is still less than the total amount
         if del_amount < amount:
             # Trigger Split Item if the condition is met
-            new_item_id_1 = f"item_{iteration}_{random.randint(1000, 9999)}"
-            new_item_id_2 = f"item_{iteration}_{random.randint(1000, 9999)}"
+            new_item_id_1 = generate_unique_item_id(iteration)
+            new_item_id_2 = generate_unique_item_id(iteration)
 
             # Print debug for Split Item
             print(f"Split Item triggered! New item IDs: {new_item_id_1}, {new_item_id_2}")
@@ -703,9 +725,9 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
 # Example usage of the function
 start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = 57  # Example amount for the order
-func = lambda x: x ** 2  # Example function for distributing the amount over time
-del_days = 2  # Test with 10 days
+amount = 800  # Example amount for the order
+func = lambda x: np.exp(2 * x)  # Example function for distributing the amount over time
+del_days = 20  # Test with 10 days
 
 # Generate the OCEL event log
 ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
