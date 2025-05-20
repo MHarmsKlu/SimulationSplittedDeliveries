@@ -47,7 +47,7 @@ class Simulation:
         for sku_id, sku in order.SKUs.items():
             delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
             ocel_config[sku_id] = {'amount': sku.quantity, 'del_days': delivery_days, 'func':  self.delivery_func[sku_id]}
-        generate_ocel_event_log(start_date=self.current_date, config=ocel_config)
+        generate_ocel_event_log(start_date=self.current_date, items=ocel_config, iteration=order.id)
         
         date_str = adjust_to_weekday(self.current_date).strftime("%Y-%m-%d")
         ocel = pm.read_ocel2_json(f"Output/OrderProcess_{date_str}.json")
@@ -61,6 +61,9 @@ class Simulation:
 
         for id,shipment in shipments_with_time_and_qty.iterrows():
             # TODO: refactor to multiple SKUs once maxis part is done
+            goods = {}
+            for item in ocel.o2o[ocel['ocel:oid']==shipment['ocel:oid']]['ocel:oid_2'].unique():
+                goods[]
             self.shipment_schedule.append(Shipment(ship_id=id, order_id=order.id, quantity=shipment["amount"], delivery_date=shipment["ocel:timestamp_x"].to_pydatetime()))
     
     def simulate_deliveries(self):

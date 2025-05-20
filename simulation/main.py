@@ -33,7 +33,7 @@ warehouse = Warehouse([sku_config_1,sku_config_2])
 sim_config = {
     'start_date' : datetime.now(),
     'days' : 1000,
-    'warehouse' : Warehouse(war_config),
+    'warehouse' : warehouse,
     'seed': 11,  
     'mean_daily_demand' : 50,
     'std_daily_demand' : 1,

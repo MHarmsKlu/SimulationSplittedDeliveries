@@ -35,5 +35,5 @@ class Shipment:
     def __init__(self,ship_id, order_id, goods, delivery_date):
         self.ship_id = ship_id
         self.order_id = order_id
-        self.SKUs = SKUs
+        self.SKUs = goods
         self.delivery_date = delivery_date

@@ -8,7 +8,7 @@ from curve_fitting import fit_distribution
 class Warehouse_SKU:
     def __init__(self, config:dict ):
         
-        keys={'rop', 'eoq','z_score', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose' }
+        keys={'id','rop', 'eoq','z_score', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose' }
         # z-score based on idea that lead times are normal distributed
         for key in keys:
             setattr(self, key, config.get(key))
@@ -26,7 +26,7 @@ class Warehouse_SKU:
         self.total_holding_costs = 0
        
     @property
-    def current_holding_cost():
+    def current_holding_cost(self):
         return self.inventory * (self.holding_cost/365)
     
     def monitor_inventory(self):
@@ -117,22 +117,22 @@ class Warehouse:
         self.SKUs = {}
         
         for con in SKU_configs:
-            self.SKUs[con.id]=Warehouse_SKU(con)
+            self.SKUs[con['id']]=Warehouse_SKU(con)
     @property             
-    def inventory():
+    def inventory(self):
         inventory = 0
         for sku in self.SKUs:
             inventory += sku.inventory
         return inventory
     @property             
-    def inventory_in_transit():
+    def inventory_in_transit(self):
         inventory_in_transit = 0
         for sku in self.SKUs:
             inventory_in_transit += sku.inventory_in_transit
         return inventory_in_transit
     
     @property
-    def current_holding_cost():
+    def current_holding_cost(self):
         current_holding_cost = 0
         for sku in self.SKUs:
             current_holding_cost += sku.current_holding_cost
@@ -145,7 +145,7 @@ class Warehouse:
             order_sku_config = sku.monitor_inventory()
             if order_sku_config:
                 order_config[sku_id] = order_sku_config
-        order = Order(order_config)
+        order = Order(id=self.orders_placed, order_placed=date,sku_configs=order_config)
         self.open_orders.append(order)
         self.orders_placed += 1
         return order
