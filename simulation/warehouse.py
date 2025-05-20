@@ -2,6 +2,7 @@
 import statistics as st
 from order import Order 
 import math
+from curve_fitting import fit_distribution
 
 
 class Warehouse:
@@ -46,8 +47,8 @@ class Warehouse:
             self.inventory -= demand
             fulfilled_demand = demand
         else: 
-            if self.verbose:
-                print(f'not enough inventory at {date}')
+            #if self.verbose:
+                #print(f'not enough inventory at {date}')
             fulfilled_demand = self.inventory
             backorders = demand - self.inventory
             self.inventory = 0
@@ -73,6 +74,13 @@ class Warehouse:
             for ship in order.shipments:
                 shipment_performances.append((ship.delivery_date.date() - order.placed.date()).days )
             order_performance = st.mean(shipment_performances)
+        if self.kpi == "item_distribution_mean":
+            shipment_dates = []
+            shipment_quantities = []
+            for ship in order.shipments:
+                shipment_dates.append((ship.delivery_date.date() - order.placed.date()).days )
+                shipment_quantities.append(ship.quantity)
+            order_performance = fit_distribution(shipment_dates,shipment_quantities)
         
         self.open_orders.remove(order)
         self.order_performances.append(order_performance)
@@ -92,5 +100,7 @@ class Warehouse:
         if self.kpi == "order_completion":
             self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
         if self.kpi == "item_completion":
+            self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
+        if self.kpi == "item_distribution_mean":
             self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
 

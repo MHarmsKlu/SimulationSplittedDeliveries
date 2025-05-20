@@ -11,22 +11,22 @@ war_config = {
     'order_base_cost' : 60,
     'holding_cost' : 1 , 
     'inventory' : 500,
-    'kpi' : 'order_completion',
+    'kpi' : 'item_distribution_mean',
     'verbose': True
 }
 
 
 sim_config = {
     'start_date' : datetime.now(),
-    'days' : 200,
+    'days' : 1000,
     'warehouse' : Warehouse(war_config),
-    'seed': 12,  
+    'seed': 11,  
     'mean_daily_demand' : 50,
     'std_daily_demand' : 1,
-    'delivery_func' : lambda x: 0.1*exp(-0.10*x),
-    'delivery_split_centre' : 10,
+    'delivery_func' : lambda x: 0.5*exp(-0.5*x),
+    'delivery_split_centre' : 1,
     'delivery_split_std' : 1,
-    'verbose': True
+    'verbose': False
 }
 
 simulation = Simulation( config=sim_config)

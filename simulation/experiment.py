@@ -51,7 +51,8 @@ def experiment(KPIs,war_config, sim_config,test_param,init_value, step_size, max
     
 KPIs = [
     "order_completion",
-    "item_completion"
+    "item_completion",
+    #"item_distribution_mean"
 ]
 
 delivery_functions = [
@@ -81,11 +82,4 @@ sim_config =  {
 
 target_params = ["service_level", "total_inventory_on_hand"]
 
-experiment(KPIs,war_config,sim_config, "delivery_split_centre", 0,1, 10, target_params  )
-# Define experiment
-
-# Run experiment
-
-# evaluate experiments
-
-# output results
+experiment(KPIs,war_config,sim_config, "delivery_split_centre", 1,1, 10, target_params  )
