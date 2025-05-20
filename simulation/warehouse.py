@@ -5,10 +5,10 @@ import math
 from curve_fitting import fit_distribution
 
 
-class Warehouse:
+class Warehouse_SKU:
     def __init__(self, config:dict ):
         
-        keys={'rop', 'eoq','z_score', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose'}
+        keys={'rop', 'eoq','z_score', 'order_base_cost', 'holding_cost', 'inventory', 'kpi', 'verbose' }
         # z-score based on idea that lead times are normal distributed
         for key in keys:
             setattr(self, key, config.get(key))
@@ -16,54 +16,60 @@ class Warehouse:
         self.inventory_in_transit = 0
         self.safety_stock =  0
         self.wait_for_order = False
-        self.open_orders = []
         self.order_performances = []
         self.order_sizes = []
         self.past_demand = []
-        self.orders_placed = 0
+        self.fulfilled_demand = 0
+        self.backorders=0
+        self.total_demand = 0
+        self.out_of_stock = 0
+        self.total_holding_costs = 0
+       
+    @property
+    def current_holding_cost():
+        return self.inventory * (self.holding_cost/365)
     
-    def monitor_inventory(self, date):
+    def monitor_inventory(self):
         if self.inventory <= self.rop and self.wait_for_order==False:
-            if self.verbose:
-                print(f'Need to reorder at {date}')
-            
             self.wait_for_order = True
             self.update_eoq()
             self.order_sizes.append(self.eoq)
-            order = Order(id=self.orders_placed,  order_placed=date, quantity=self.eoq )
-            self.open_orders.append(order)
-            self.orders_placed += 1
-            self.inventory_in_transit = order.quantity
-            return order
+            
+            self.inventory_in_transit = self.eoq
+            return self.eoq
         else:
             return False
     
     def consume_inventory(self, date, demand):
         self.past_demand.append(demand)
-        backorders = 0
-        fulfilled_demand = 0
+        backorders_today = 0
+        fulfilled_demand_today = 0
         if self.inventory >= demand:
             #print(f'consuming {demand} goods at {date}')
             self.inventory -= demand
-            fulfilled_demand = demand
+            fulfilled_demand_today = demand
         else: 
             #if self.verbose:
                 #print(f'not enough inventory at {date}')
-            fulfilled_demand = self.inventory
-            backorders = demand - self.inventory
+            fulfilled_demand_today = self.inventory
+            backorders_today = demand - self.inventory
             self.inventory = 0
-        return fulfilled_demand, backorders
+        
+        self.total_demand += demand
+        self.fulfilled_demand += fulfilled_demand_today
+        self.backorders += backorders_today  
+        self.total_holding_costs += self.current_holding_cost
 
-    def receive_shipment(self, date, shipment):
-        if self.verbose:
-            print(f"incoming {shipment.quantity} goods at {date}")
-        for order in self.open_orders:
-            if order.id == shipment.order_id:
-                order.update(shipment)
-                if order.complete:
-                    self.evaluate_order(order)
-        self.inventory += shipment.quantity
-        self.inventory_in_transit -= shipment.quantity
+
+        if self.inventory == 0:
+            self.out_of_stock += 1
+        return fulfilled_demand_today, backorders_today
+
+    def receive_shipment(self, shipment,order):
+        if order.complete:
+            self.evaluate_order(order.SKUs[self.id])
+        self.inventory += shipment.SKUs[self.id].quantity
+        self.inventory_in_transit -= shipment.SKUs[self.id].quantity
         return self.inventory
 
     def evaluate_order(self,order):
@@ -104,3 +110,62 @@ class Warehouse:
         if self.kpi == "item_distribution_mean":
             self.rop = (st.mean(self.order_performances) * st.mean(self.past_demand)) + self.safety_stock
 
+class Warehouse:
+    def __init__(self, SKU_configs ):
+        self.open_orders=[]
+        self.orders_placed = 0 
+        self.SKUs = {}
+        
+        for con in SKU_configs:
+            self.SKUs[con.id]=Warehouse_SKU(con)
+    @property             
+    def inventory():
+        inventory = 0
+        for sku in self.SKUs:
+            inventory += sku.inventory
+        return inventory
+    @property             
+    def inventory_in_transit():
+        inventory_in_transit = 0
+        for sku in self.SKUs:
+            inventory_in_transit += sku.inventory_in_transit
+        return inventory_in_transit
+    
+    @property
+    def current_holding_cost():
+        current_holding_cost = 0
+        for sku in self.SKUs:
+            current_holding_cost += sku.current_holding_cost
+        return current_holding_cost
+
+
+    def monitor_inventory(self, date):
+        order_config = {}
+        for sku_id,sku in self.SKUs.items():
+            order_sku_config = sku.monitor_inventory()
+            if order_sku_config:
+                order_config[sku_id] = order_sku_config
+        order = Order(order_config)
+        self.open_orders.append(order)
+        self.orders_placed += 1
+        return order
+
+    def consume_inventory(self, date, demands):
+        fulfilled_demand = 0
+        backorders = 0
+        for sku in demands.keys():
+            sku_fulfilled, sku_backorders = self.SKUs[sku].consume_inventory(date, demands[sku])
+            fulfilled_demand += sku_fulfilled
+            backorders += sku_backorders
+        return fulfilled_demand, backorders
+    
+    def receive_shipment(self, shipment):
+        
+        for order in self.open_orders:
+            if order.id == shipment.order_id:
+                order.update(shipment)
+                for sku in shipment.SKUs.keys():
+                    self.SKUs[sku].receive_shipment(shipment, order)
+        return self.inventory
+
+    #TODO add global statistics as property

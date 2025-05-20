@@ -32,7 +32,7 @@ def experiment(KPIs,war_config, sim_config,test_param,init_value, step_size, max
             sim = initialize_sim(kpi,war_config,sim_config,test_param,i)
 
             sim.run()
-            sim_results = sim.evaluate()
+            sim_results = sim.evaluate_globally()
             for target_param in target_params:
                 results[target_param][kpi].append(sim_results[target_param]) 
     

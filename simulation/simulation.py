@@ -14,40 +14,48 @@ class Simulation:
         keys= ['start_date', 'days', 'warehouse', 'seed', 'mean_daily_demand','std_daily_demand','delivery_func', 'delivery_split_centre', 'delivery_split_std', 'verbose']
         for key in keys:
             setattr(self, key, config.get(key))
-        # self.start_date = start_date
-        # self.current_date = start_date
-        # self.days = days
-        # self.warehouse = warehouse
-        # self.seed = seed
-        # self.mean_daily_demand = mean_daily_demand
-        # self.std_daily_demand = std_daily_demand
-        # self.delivery_func = delivery_func
-        # self.delivery_split_centre = delivery_split_centre
-        # self.delivery_split_std = delivery_split_std 
         
         self.current_date = self.start_date
         self.shipment_schedule = []
-        self.inventory_history_on_hand = []
-        self.inventory_history_in_transit = []
-        self.inventory_history_total = []
-        self.past_rops=[]
-        self.past_eoqs=[]
-        self.past_safety_stock=[]
-        self.backorders = 0
-        self.fulfilled_demand = 0
+        # self.inventory_history_on_hand = []
+        # self.inventory_history_in_transit = []
+        # self.inventory_history_total = []
+        # self.past_rops=[]
+        # self.past_eoqs=[]
+        # self.past_safety_stock=[]
+        self.global_backorders = 0
+        self.global_fulfilled_demand = 0
         self.total_demand = 0
-        self.out_of_stock = 0
-        self.total_holding_costs = 0
+        self.global_out_of_stock = 0
+        self.global_total_holding_costs = 0
 
+        self.sku_data = {}
+        for sku in self.warehouse.SKUs.keys():
+            self.sku_data[sku] = {
+                'inventory_history_on_hand' : [],
+                'inventory_history_in_transit' : [],
+                'inventory_history_total' : [],
+                'past_rops':[],
+                'past_eoqs':[],
+                'past_safety_stock':[],
+                'backorders' : 0,
+                'fulfilled_demand' : 0,
+                'total_demand' : 0,
+                'out_of_stock' : 0,
+                'total_holding_costs' : 0,
+            }
+        self.sku_results={}
     
     def simulate_order(self, order):
         if self.verbose:
             print(f"generate order {order.id} with quantity {order.quantity}")
-        delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
-        generate_ocel_event_log(start_date=self.current_date, amount=order.quantity, func=self.delivery_func, iteration=order.id, del_days=delivery_days)
+        ocel_config = {}
+        for sku_id, sku in order.SKUs.items():
+            delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
+            ocel_config[sku_id] = {'amount': sku.quantity, 'del_days': delivery_days, 'func':  self.delivery_func[sku_id]}
+        generate_ocel_event_log(start_date=self.current_date, config=ocel_config)
         
         date_str = adjust_to_weekday(self.current_date).strftime("%Y-%m-%d")
-        #time.sleep(10)
         ocel = pm.read_ocel2_json(f"Output/OrderProcess_{date_str}.json")
         filtered_ocel = pm.filter_ocel_event_attribute(ocel,'ocel:activity',['Deliver Package'])
 
@@ -58,6 +66,7 @@ class Simulation:
         shipments_with_time_and_qty = relations_with_timestamps.merge(filtered_ocel.objects, on="ocel:oid")
 
         for id,shipment in shipments_with_time_and_qty.iterrows():
+            # TODO: refactor to multiple SKUs once maxis part is done
             self.shipment_schedule.append(Shipment(ship_id=id, order_id=order.id, quantity=shipment["amount"], delivery_date=shipment["ocel:timestamp_x"].to_pydatetime()))
     
     def simulate_deliveries(self):
@@ -69,15 +78,42 @@ class Simulation:
                     self.shipment_schedule.remove(shipment)
 
     def simulate_demand(self):
-        demand_today = max(0, int(np.random.normal(self.mean_daily_demand, self.std_daily_demand))) 
-        fulfilled_demand_today, backorders_today = self.warehouse.consume_inventory(self.current_date, demand_today)
+        demands = {}
+        for sku in self.warehouse.SKUs.keys():
+            demands[sku] = max(0, int(np.random.normal(self.mean_daily_demand, self.std_daily_demand))) 
+        demand_today = sum(demands.values())
+        fulfilled_demand_today, backorders_today = self.warehouse.consume_inventory(self.current_date, demands)
         
         order = self.warehouse.monitor_inventory(self.current_date)
         if order:
             self.simulate_order(order)
-        
         return demand_today, fulfilled_demand_today, backorders_today       
     
+    def collect_global_data(self, demand_today, fulfilled_demand_today, backorders_today):
+        self.total_demand += demand_today
+        self.global_fulfilled_demand += fulfilled_demand_today
+        self.global_backorders += backorders_today  
+        self.global_total_holding_costs += self.warehouse.current_holding_cost
+
+        self.past_safety_stock.append(self.warehouse.safety_stock)
+        # self.past_rops.append(self.warehouse.rop)
+        # self.past_eoqs.append(self.warehouse.eoq)
+
+        self.inventory_history_on_hand.append(self.warehouse.inventory)
+        self.inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
+        self.inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
+
+        if self.warehouse.inventory == 0:
+            self.global_out_of_stock += 1
+    
+    def collect_sku_data(self, sku):
+        self.sku_data[sku]['inventory_history_on_hand'].append(self.warehouse.SKUs[sku].inventory)
+        self.sku_data[sku]['inventory_history_in_transit'].append(self.warehouse.SKUs[sku].inventory_in_transit)
+        self.sku_data[sku]['inventory_history_total'].append(self.warehouse.SKUs[sku].inventory + self.warehouse.SKUs[sku].inventory_in_transit)
+        self.sku_data[sku]['past_rops'].append(self.warehouse.SKUs[sku].rop)
+        self.sku_data[sku]['past_eoqs'].append(self.warehouse.SKUs[sku].eoq)
+        self.sku_data[sku]['past_safety_stock'].append(self.warehouse.SKUs[sku].safety_stock)
+            
     def run(self):
         np.random.seed(self.seed)
         if self.verbose:
@@ -88,42 +124,49 @@ class Simulation:
             self.simulate_deliveries()
             demand_today, fulfilled_demand_today, backorders_today = self.simulate_demand()
             
-            self.total_demand += demand_today
-            self.fulfilled_demand += fulfilled_demand_today
-            self.backorders += backorders_today  
-            self.total_holding_costs += self.warehouse.inventory * (self.warehouse.holding_cost/365)
+            self.collect_global_data(demand_today, fulfilled_demand_today, backorders_today)
+            for sku in self.warehouse.SKUs.keys():
+                collect_sku_data(sku)
 
-            self.past_safety_stock.append(self.warehouse.safety_stock)
-            self.past_rops.append(self.warehouse.rop)
-            self.past_eoqs.append(self.warehouse.eoq)
+            
 
-            self.inventory_history_on_hand.append(self.warehouse.inventory)
-            self.inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
-            self.inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
-
-            if self.warehouse.inventory == 0:
-                self.out_of_stock += 1
-
-    def evaluate(self,report=False):
+    def evaluate_globally(self,report=False):
         # --- Results ---
         self.results = {
-            'service_level' : self.fulfilled_demand / self.total_demand,
+            'service_level' : self.global_fulfilled_demand / self.total_demand,
             'total_demand' : self.total_demand,
-            'fulfilled_demand' : self.fulfilled_demand,
-            'backorders' : self.backorders,
-            'stock_outs' : self.out_of_stock,
+            'fulfilled_demand' : self.global_fulfilled_demand,
+            'backorders' : self.global_backorders,
+            'stock_outs' : self.global_out_of_stock,
             'orders_placed' : self.warehouse.orders_placed,
-            'total_holding_costs' : self.total_holding_costs,
-            'total_inventory_on_hand' : sum(self.inventory_history_on_hand),
-            'mean_lead_time' : st.mean(self.warehouse.order_performances),
-            'mean_order_size' : st.mean(self.warehouse.order_sizes)
+            'total_holding_costs' : self.global_total_holding_costs,
+            'total_inventory_on_hand' : sum(self.global_inventory_history_on_hand),
+            # 'mean_lead_time' : st.mean(self.warehouse.order_performances),
+            # 'mean_order_size' : st.mean(self.warehouse.order_sizes)
         }
         if report == True:
             for key, value in self.results.items():
                 print(f"{key}: {value}")
 
         return self.results
+    
+    def evaluate_skus(self, sku, report=False):
+        self.sku_results[sku] = {
+            'service_level' : self.warehouse.SKUs[sku].fulfilled_demand / self.warehouse.SKUs[sku].total_demand,
+            'total_demand' : self.warehouse.SKUs[sku].total_demand,
+            'fulfilled_demand' : self.warehouse.SKUs[sku].fulfilled_demand,
+            'backorders' : self.warehouse.SKUs[sku].backorders,
+            'stock_outs' : self.warehouse.SKUs[sku].out_of_stock,
+            'total_holding_costs' : self.warehouse.SKUs[sku].total_holding_costs,
+            'total_inventory_on_hand' : sum(self.sku_data[sku].inventory_history_on_hand),
+            # 'mean_lead_time' : st.mean(self.warehouse.order_performances),
+            # 'mean_order_size' : st.mean(self.warehouse.order_sizes)
+        }
+        if report == True:
+            for key, value in self.results.items():
+                print(f"{key}: {value}")
 
+        return self.results
     def visualize(self):
         # --- Visualization ---
         plt.figure(figsize=(12, 6))

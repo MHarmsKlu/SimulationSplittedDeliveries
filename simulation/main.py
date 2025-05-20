@@ -33,5 +33,5 @@ simulation = Simulation( config=sim_config)
 
 
 simulation.run()
-simulation.evaluate(report=True)
+simulation.evaluate_globally(report=True)
 simulation.visualize()
