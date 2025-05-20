@@ -17,12 +17,6 @@ class Simulation:
         
         self.current_date = self.start_date
         self.shipment_schedule = []
-        # self.inventory_history_on_hand = []
-        # self.inventory_history_in_transit = []
-        # self.inventory_history_total = []
-        # self.past_rops=[]
-        # self.past_eoqs=[]
-        # self.past_safety_stock=[]
         self.global_backorders = 0
         self.global_fulfilled_demand = 0
         self.total_demand = 0
