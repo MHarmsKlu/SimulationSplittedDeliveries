@@ -486,8 +486,12 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                             {
                                 "name": "amount",
                                 "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "material_id": key,
                                 "value": items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
+                            },
+                            {
+                                "name": "material_id",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "value": key
                             }
                         ],
                         "relationships":
@@ -541,8 +545,12 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                             {
                                 "name": "amount",
                                 "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "material_id": key,
                                 "value": items[key]['check_availability_days'][day]
+                            },
+                            {
+                                "name": "material_id",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "value": key
                             }
                         ],
                         "relationships":
@@ -572,8 +580,12 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                             {
                                 "name": "amount",
                                 "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "material_id": key,
                                 "value": items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
+                            },
+                            {
+                                "name": "material_id",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "value": key
                             }
                         ],
                         "relationships":
