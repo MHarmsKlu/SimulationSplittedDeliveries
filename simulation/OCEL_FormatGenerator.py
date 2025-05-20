@@ -46,10 +46,10 @@ used_ids["order"] = set()
 used_ids["item"] = set()
 used_ids["package"] = set()
 
-def generate_unique_id(obj_type,iteration):
+def generate_unique_id(obj_type,iteration, material_item_id):
     while True:
         rand_num = np.random.randint(1000, 9999)
-        obj_id = f"{obj_type}_{iteration}_{rand_num}"
+        obj_id = f"{obj_type}_{iteration}_{material_item_id}_{rand_num}"
         if obj_id not in used_ids[obj_type]:
             used_ids[obj_type].add(obj_id)
             return obj_id
@@ -101,7 +101,12 @@ def distribute_values(func, time_slots, target_sum, verbose=False):
     :return: List of calculated values
     """
     x_values = np.arange(1, time_slots + 1)
-    y_values = np.array([func(x) for x in x_values])
+    # Check if func callable or constant
+    if callable(func):
+        y_values = np.array([func(x) for x in x_values])
+    else:
+        # build array with value
+        y_values = np.full_like(x_values, float(func), dtype=float)
 
     if verbose:
         print("Initial function values:", y_values)
@@ -178,20 +183,20 @@ def distribute_values(func, time_slots, target_sum, verbose=False):
 
 
 # Function to generate OCEL event log
-def generate_ocel_event_log(start_date, amount, func, del_days, iteration, company="company_1", verbose=False):
+def generate_ocel_event_log(start_date, items, iteration, company="company_1", verbose=False):
 
     object_types = [
         {
             "name": "Order",
             "attributes": [
-                {"name": "id", "type": "string"},
-                {"name": "amount", "type": "int"}
+                {"name": "id", "type": "string"}
             ]
         },
         {
             "name": "Item",
             "attributes": [
                 {"name": "id", "type": "string"},
+                {"name": "material_id", "type": "string"},
                 {"name": "amount", "type": "int"}
             ]
         },
@@ -199,7 +204,6 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "name": "Package",
             "attributes": [
                 {"name": "id", "type": "string"},
-                {"name": "amount", "type": "int"}
             ]
         }
     ]
@@ -268,8 +272,6 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         }
     ]
 
-    objects = []
-
     # List of Warehouse Employees
     warehouse_employees = [
         "J. Williams",
@@ -293,9 +295,20 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         "Bank Transfer"
     ]
 
+    objects = []
+
     # Generate order_id for consistency across all activities
     order_id = f"order_{iteration}"
-    item_id = generate_unique_id("item",iteration)
+    initial_item_list = []
+    for idx, key in enumerate(items):
+        items[key]['initial_item_name'] = f"item_{iteration}_{key}"
+        items[key]['last_item_id'] = items[key]['initial_item_name']
+        items[key]['del_amount'] = 0
+        # Distribute values for the amount to determine when to check availability
+        items[key]['check_availability_days'] = distribute_values(
+            items[key]['func'],
+            items[key]['del_days'],
+            items[key]['amount'])
 
     # Adjust start date to ensure it's a weekday
     start_date = adjust_to_weekday(start_date)
@@ -304,9 +317,6 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     place_order_timestamp = start_date
     send_invoice_timestamp = place_order_timestamp + generate_random_timedelta(1, 3)  # 1-3 days for invoice
     receive_payment_timestamp = send_invoice_timestamp + generate_random_timedelta(1, 7)  # 1-7 days for payment
-
-    # Distribute values for the amount to determine when to check availability
-    check_availability_days = distribute_values(func, del_days, amount)
 
     order_object = {
         "id": order_id,
@@ -318,14 +328,15 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                 "value": amount
             }
         ],
-        "relationships":
-            [
-                {
-                    "objectId": item_id,
-                    "qualifier": "Item of Order"
-                }
-            ]
+        "relationships": []
     }
+
+    # Iterate over items
+    for key in items:
+        order_object["relationships"].append({
+            "objectId": items[key]['initial_item_name'],
+            "qualifier": "Item of Order"
+        })
 
     # Append the Order object to the list of objects
     objects.append(order_object)
@@ -346,10 +357,6 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
             "relationships": [
                 {
                     "objectId": order_id,
-                    "qualifier": "Regular placement of order"
-                },
-                {
-                    "objectId": item_id,
                     "qualifier": "Regular placement of order"
                 }
             ],
@@ -397,245 +404,255 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
     # Now add the "Check Availability" events based on the distributed days
     last_check_timestamp = place_order_timestamp
-    last_item_id = item_id  # Start with the initial item_id
-
-    # Initialize the del_amount variable to track the cumulative available amount
-    del_amount = 0  # Start with a cumulative amount of 0
-
-    split_item_timestamp = place_order_timestamp
 
     # Loop through all the `Check Availability` events
-    for i, check_day in enumerate(check_availability_days):
+    for day in range(0, max(e['del_days'] for e in items.values())):
         # Calculate the timestamp for the next "Check Availability"
         check_availability_timestamp = last_check_timestamp
         check_availability_timestamp += generate_random_timedelta(1, 7)  # Add a random time offset
         check_availability_timestamp = adjust_to_working_hours(check_availability_timestamp)
 
-        # Add the current available amount to del_amount
-        del_amount += check_availability_days[i]
-
-        # Add the "Check Availability" event
-        events.append({
-            "id": f"e_{iteration}_{i}_4_{company}",
-            "type": "Check Availability",
-            "time": check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-            "attributes": [
-                {
-                    "name": "checker",
-                    "value": np.random.choice(warehouse_employees)
-                }
-            ],
-            "relationships": [
-                {
-                    "objectId": last_item_id,
-                    "qualifier": "Regular availability check of items"
-                }
-            ]
-        })
-
-        # Debugging print statement to track the process
-        if verbose:
-            print(f"Checking availability for item {last_item_id} at {check_availability_timestamp}")
-            print(f"Cumulative available amount (del_amount): {del_amount}")
-
-        # Check if del_amount is still less than the total amount
-        if del_amount < amount:
-            # Trigger Split Item if the condition is met
-            new_item_id_1 = generate_unique_id("item",iteration)
-            new_item_id_2 = generate_unique_id("item",iteration)
-
-            # Print debug for Split Item
-            if verbose:
-                print(f"Split Item triggered! New item IDs: {new_item_id_1}, {new_item_id_2}")
-
-
-            item_object = {
-                "id": last_item_id,
-                "type": "Item",
-                "attributes": [
-                    {
-                        "name": "amount",
-                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "value": amount - del_amount + check_availability_days[i]
-                    }
-                ],
-                "relationships":
-                    [
-                        {
-                            "objectId": new_item_id_1,
-                            "qualifier": "Split item out stock"
-                        },
-                        {
-                            "objectId": new_item_id_2,
-                            "qualifier": "Split item deliver"
-                        }
-                    ]
-            }
-
-            # Append the Order object to the list of objects
-            objects.append(item_object)
-
-            # Add the "Split Item" event (1 day after Check Availability)
-            split_item_timestamp = check_availability_timestamp + timedelta(days=1)
-
-            events.append({
-                "id": f"e_{iteration}_{i}_5_{company}",
-                "type": "Split Item",
-                "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "attributes": [
-                    {
-                        "name": "spliter",
-                        "value": np.random.choice(warehouse_employees)
-                    }
-                ],
-                "relationships": [
-                    {
-                        "objectId": last_item_id,
-                        "qualifier": "Split of available items for delivery"
-                    },
-                    {
-                        "objectId": new_item_id_1,
-                        "qualifier": "Split item out of stock"
-                    },
-                    {
-                        "objectId": new_item_id_2,
-                        "qualifier": "Split item for delivery"
-                    }
-                ]
-            })
-
-            item_object_del = {
-                "id": new_item_id_2,
-                "type": "Item",
-                "attributes": [
-                    {
-                        "name": "amount",
-                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "value": check_availability_days[i]
-                    }
-                ],
-                "relationships":
-                    [
-                        {
-                            "objectId": last_item_id,
-                            "qualifier": "Split out of item"
-                        },
-                        {
-                            "objectId": new_item_id_1,
-                            "qualifier": "Split item out of stock"
-                        }
-                    ]
-            }
-
-            # Append the Order object to the list of objects
-            objects.append(item_object_del)
-
-            # Set the last_item_id to the first new item_id for future events
-            last_item_id = new_item_id_1
-
-        else:
-            item_object = {
-                "id": last_item_id,
-                "type": "Item",
-                "attributes": [
-                    {
-                        "name": "amount",
-                        "time": split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "value": amount - del_amount + check_availability_days[i]
-                    }
-                ],
-                "relationships":
-                    [
-                    ]
-            }
-
-            # Append the Order object to the list of objects
-            objects.append(item_object)
+        # Add the "Split Item" event (1 day after Check Availability)
+        split_item_timestamp = check_availability_timestamp + timedelta(days=1)
 
         # Update the last timestamp for future events
         last_check_timestamp = check_availability_timestamp
 
-        # After Split Item or Check Availability, execute the "Pick Item" activity
-        if del_amount < amount:
-            # If a Split Item occurred, use the new item_id_2 for Pick Item
-            pick_item_timestamp = split_item_timestamp + timedelta(
-                minutes=np.random.randint(15, 180))  # 15 mins to 3 hours
-            pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
-            events.append({
-                "id": f"e_{iteration}_{i}_6_{company}",
-                "type": "Pick Item",
-                "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-
-                "attributes": [
-                    {
-                        "name": "picker",
-                        "value": np.random.choice(warehouse_employees)
-                    }
-                ],
-                "relationships": [
-                    {
-                        "objectId": new_item_id_2,
-                        "qualifier": "Regular pick of item"
-                    }
-                ]
-            })
-            if verbose:
-                print(f"Pick Item activity for {new_item_id_2} after Split Item at {pick_item_timestamp}")
-        else:
-            # If no Split Item occurred, use the item_id from Check Availability for Pick Item
-            pick_item_timestamp = check_availability_timestamp + timedelta(
-                minutes=np.random.randint(15, 180))  # 15 mins to 3 hours
-            pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
-            events.append({
-                "id": f"e_{iteration}_{i}_7_{company}",
-                "type": "Pick Item",
-                "time": pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "attributes": [
-                    {
-                        "name": "picker",
-                        "value": np.random.choice(warehouse_employees)
-                    }
-                ],
-                "relationships": [
-                    {
-                        "objectId": last_item_id,
-                        "qualifier": "Regular pick of item"
-                    }
-                ]
-            })
-            if verbose:
-                print(f"Pick Item activity for {last_item_id} after Check Availability at {pick_item_timestamp}")
+        pick_item_timestamp = split_item_timestamp + timedelta(
+            minutes=np.random.randint(15, 180))  # 15 mins to 3 hours
+        pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
 
         # After Pick Item, execute the "Pack Items" activity
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(5, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
-        package_id = generate_unique_id("package", iteration)
+        package_id = generate_unique_id("package", iteration, 'p')
         package_object = {
             "id": package_id,
             "type": "Package",
-            "attributes": [
-                {
-                    "name": "amount",
-                    "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "value": check_availability_days[i]
-                }
-            ],
+            "attributes": [],
             "relationships":
                 [
-                    {
-                        "objectId": last_item_id,
-                        "qualifier": "Package of item"
-                    }
                 ]
         }
+
+        for idx, key in enumerate(items):
+            if(day < items[key]['del_days']):
+                # Add the current available amount to del_amount
+                items[key]['del_amount'] += items[key]['check_availability_days'][day]
+                item_check_availability_timestamp = check_availability_timestamp + timedelta(
+            minutes=np.random.randint(-20, 20))
+
+                # Add the "Check Availability" event
+                events.append({
+                    "id": f"e_{iteration}_{day}_4_{company}_{key}",
+                    "type": "Check Availability",
+                    "time": item_check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "attributes": [
+                        {
+                            "name": "checker",
+                            "value": np.random.choice(warehouse_employees)
+                        }
+                    ],
+                    "relationships": [
+                        {
+                            "objectId": items[key]['last_item_id'],
+                            "qualifier": "Regular availability check of items"
+                        }
+                    ]
+                })
+
+                # Debugging print statement to track the process
+                if verbose:
+                    print(f"Checking availability for item {items[key]['last_item_id']} at {item_check_availability_timestamp}")
+                    print(f"Cumulative available amount (del_amount): {items[key]['del_amount']}")
+
+                item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+
+                # Check if del_amount is still less than the total amount
+                if items[key]['del_amount'] < items[key]['amount']:
+                    # Trigger Split Item if the condition is met
+                    items[key]['new_item_id_1'] = generate_unique_id("item",iteration, key)
+                    items[key]['new_item_id_2'] = generate_unique_id("item",iteration, key)
+
+                    # Print debug for Split Item
+                    if verbose:
+                        print(f"Split Item triggered! New item IDs: {items[key]['new_item_id_1']}, {items[key]['new_item_id_2']}")
+
+                    item_object = {
+                        "id": items[key]['last_item_id'],
+                        "type": "Item",
+                        "attributes": [
+                            {
+                                "name": "amount",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "material_id": key,
+                                "value": items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
+                            }
+                        ],
+                        "relationships":
+                            [
+                                {
+                                    "objectId": items[key]['new_item_id_1'],
+                                    "qualifier": "Split item out stock"
+                                },
+                                {
+                                    "objectId": items[key]['new_item_id_2'],
+                                    "qualifier": "Split item deliver"
+                                }
+                            ]
+                    }
+
+                    # Append the Order object to the list of objects
+                    objects.append(item_object)
+
+                    item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+
+                    events.append({
+                        "id": f"e_{iteration}_{day}_5_{company}_{key}",
+                        "type": "Split Item",
+                        "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "attributes": [
+                            {
+                                "name": "spliter",
+                                "value": np.random.choice(warehouse_employees)
+                            }
+                        ],
+                        "relationships": [
+                            {
+                                "objectId": items[key]['last_item_id'],
+                                "qualifier": "Split of available items for delivery"
+                            },
+                            {
+                                "objectId": items[key]['new_item_id_1'],
+                                "qualifier": "Split item out of stock"
+                            },
+                            {
+                                "objectId": items[key]['new_item_id_2'],
+                                "qualifier": "Split item for delivery"
+                            }
+                        ]
+                    })
+
+                    item_object_del = {
+                        "id": items[key]['new_item_id_2'],
+                        "type": "Item",
+                        "attributes": [
+                            {
+                                "name": "amount",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "material_id": key,
+                                "value": items[key]['check_availability_days'][day]
+                            }
+                        ],
+                        "relationships":
+                            [
+                                {
+                                    "objectId": items[key]['last_item_id'],
+                                    "qualifier": "Split out of item"
+                                },
+                                {
+                                    "objectId": items[key]['new_item_id_1'],
+                                    "qualifier": "Split item out of stock"
+                                }
+                            ]
+                    }
+
+                    # Append the Order object to the list of objects
+                    objects.append(item_object_del)
+
+                    # Set the last_item_id to the first new item_id for future events
+                    items[key]['last_item_id'] = items[key]['new_item_id_1']
+
+                else:
+                    item_object = {
+                        "id": items[key]['last_item_id'],
+                        "type": "Item",
+                        "attributes": [
+                            {
+                                "name": "amount",
+                                "time": item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "material_id": key,
+                                "value": items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
+                            }
+                        ],
+                        "relationships":
+                            [
+                            ]
+                    }
+
+                    # Append the Order object to the list of objects
+                    objects.append(item_object)
+
+                item_pick_item_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+
+                # After Split Item or Check Availability, execute the "Pick Item" activity
+                if items[key]['del_amount'] < items[key]['amount']:
+                    # If a Split Item occurred, use the new item_id_2 for Pick Item
+                    events.append({
+                        "id": f"e_{iteration}_{day}_6_{company}_{key}",
+                        "type": "Pick Item",
+                        "time": item_pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+
+                        "attributes": [
+                            {
+                                "name": "picker",
+                                "value": np.random.choice(warehouse_employees)
+                            }
+                        ],
+                        "relationships": [
+                            {
+                                "objectId": items[key]['new_item_id_2'],
+                                "qualifier": "Regular pick of item"
+                            }
+                        ]
+                    })
+                    if verbose:
+                        print(f"Pick Item activity for {items[key]['new_item_id_2']} after Split Item at {item_pick_item_timestamp}")
+                else:
+                    # If no Split Item occurred, use the item_id from Check Availability for Pick Item
+                    events.append({
+                        "id": f"e_{iteration}_{day}_7_{company}_{key}",
+                        "type": "Pick Item",
+                        "time": item_pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "attributes": [
+                            {
+                                "name": "picker",
+                                "value": np.random.choice(warehouse_employees)
+                            }
+                        ],
+                        "relationships": [
+                            {
+                                "objectId": items[key]['last_item_id'],
+                                "qualifier": "Regular pick of item"
+                            }
+                        ]
+                    })
+                    if verbose:
+                        print(f"Pick Item activity for {items[key]['last_item_id']} after Check Availability at {item_pick_item_timestamp}")
+
+        for key in items:
+            if day < items[key]['del_days']:
+                package_object["relationships"].append({
+                    "objectId": items[key]['last_item_id'],
+                    "qualifier": "Package of item"
+                })
 
         # Append the Package object to the list of objects
         objects.append(package_object)
 
+        relationships = []
+
+        for key, item in items.items():
+            if day < item['del_days']:
+                relationships.append({
+                    "objectId": item['last_item_id'],
+                    "qualifier": "Regular pack of item"
+                })
+
         # Add the "Pack Items" activity
         events.append({
-            "id": f"e_{iteration}_{i}_8_{company}",
+            "id": f"e_{iteration}_{day}_8_{company}",
             "type": "Pack Items",
             "time": pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -644,22 +661,24 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
                     "value": np.random.choice(warehouse_employees)
                 }
             ],
-            "relationships": [
+            "relationships": relationships + [
                 {
-                    "objectId": last_item_id,
-                    "qualifier": "Regular pack of item"
+                    "objectId": package_id,
+                    "qualifier": "Package of items"
                 }
             ]
         })
+
+
         if verbose:
-            print(f"Pack Items activity for {last_item_id} with package {package_id} at {pack_items_timestamp}")
+            print(f"Pack Items activity for {relationships} with package {package_id} at {pack_items_timestamp}")
 
         # After Pack Items, execute the "Store Package" activity
         store_package_timestamp = pack_items_timestamp + timedelta(minutes=np.random.randint(5, 20))  # 5 to 20 minutes
         store_package_timestamp = adjust_to_working_hours(store_package_timestamp)
         # Add the "Store Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_9_{company}",
+            "id": f"e_{iteration}_{day}_9_{company}",
             "type": "Store Package",
             "time": store_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -684,7 +703,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         load_package_timestamp = adjust_to_working_hours(load_package_timestamp)
         # Add the "Load Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_10_{company}",
+            "id": f"e_{iteration}_{day}_10_{company}",
             "type": "Load Package",
             "time": load_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -707,7 +726,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         deliver_package_timestamp = load_package_timestamp + timedelta(days=np.random.randint(3, 6))  # 3 to 6 days
         # Add the "Deliver Package" activity
         events.append({
-            "id": f"e_{iteration}_{i}_11_{company}",
+            "id": f"e_{iteration}_{day}_11_{company}",
             "type": "Deliver Package",
             "time": deliver_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
             "attributes": [
@@ -741,12 +760,22 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
 
 # Example usage of the function
 start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = 800  # Example amount for the order
-func = lambda x: np.exp(2 * x)  # Example function for distributing the amount over time
-del_days = 20  # Test with 10 days
+amount = [800, 500, 20]  # Example amount for the order
+func = [lambda x: np.exp(2 * x), lambda x: 2, lambda x: x ** 2]  # Example function for distributing the amount over time
+del_days = [2, 3, 4]  # Test with 10 days
+items = {}
 
-# # Generate the OCEL event log
-# ocel_event_log = generate_ocel_event_log(start_date, amount, func, del_days, 1)
+for i in range(len(amount)):
+    items[i] = {
+        'amount': amount[i],
+        'func': func[i](del_days[i]),
+        'del_days': del_days[i]
+    }
+
+
+
+# Generate the OCEL event log
+ocel_event_log = generate_ocel_event_log(start_date, items, 1)
 
 # # Set pandas options to display all rows and columns
 # pd.set_option('display.max_rows', None)  # Display all rows
