@@ -1,5 +1,4 @@
 import pandas as pd
-#import random
 import numpy as np
 from datetime import datetime, timedelta
 import json
@@ -42,15 +41,18 @@ def save_ocel_log_to_json(ocel_log, start_date, verbose=False):
         print(f"OCEL Log saved at: {file_path}")
 
 
-used_ids = set()
+used_ids = {}
+used_ids["order"] = set()
+used_ids["item"] = set()
+used_ids["package"] = set()
 
-def generate_unique_item_id(iteration):
+def generate_unique_id(obj_type,iteration):
     while True:
         rand_num = np.random.randint(1000, 9999)
-        item_id = f"item_{iteration}_{rand_num}"
-        if item_id not in used_ids:
-            used_ids.add(item_id)
-            return item_id
+        obj_id = f"{obj_type}_{iteration}_{rand_num}"
+        if obj_id not in used_ids[obj_type]:
+            used_ids[obj_type].add(obj_id)
+            return obj_id
 
 # Helper function to generate random timedelta in a realistic working day range
 def generate_random_timedelta(min_days, max_days, min_hours=8, max_hours=17, verbose=False):
@@ -292,8 +294,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
     ]
 
     # Generate order_id for consistency across all activities
-    order_id = f"order_{iteration}_{np.random.randint(1000, 9999)}"
-    item_id = generate_unique_item_id(iteration)
+    order_id = f"order_{iteration}"
+    item_id = generate_unique_id("item",iteration)
 
     # Adjust start date to ensure it's a weekday
     start_date = adjust_to_weekday(start_date)
@@ -439,8 +441,8 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         # Check if del_amount is still less than the total amount
         if del_amount < amount:
             # Trigger Split Item if the condition is met
-            new_item_id_1 = generate_unique_item_id(iteration)
-            new_item_id_2 = generate_unique_item_id(iteration)
+            new_item_id_1 = generate_unique_id("item",iteration)
+            new_item_id_2 = generate_unique_id("item",iteration)
 
             # Print debug for Split Item
             if verbose:
@@ -608,7 +610,7 @@ def generate_ocel_event_log(start_date, amount, func, del_days, iteration, compa
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(5, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
-        package_id = f"package_{iteration}_{np.random.randint(1000, 9999)}"  # Generate a random package ID
+        package_id = generate_unique_id("package", iteration)
         package_object = {
             "id": package_id,
             "type": "Package",
