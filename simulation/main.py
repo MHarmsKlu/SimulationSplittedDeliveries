@@ -3,6 +3,18 @@ from warehouse import Warehouse
 from datetime import date, time, datetime
 from math import sin,log,exp
 import numpy as np
+import os
+import sys
+import shutil
+
+
+output = "Output"
+
+# Try to remove the tree; if it fails, throw an error using try...except.
+try:
+    shutil.rmtree(output)
+except OSError as e:
+    print("Error: %s - %s." % (e.filename, e.strerror))
 
 sku_config_0 = {
     'id' : 0,
@@ -38,7 +50,7 @@ sim_config = {
     'mean_daily_demand' : 50,
     'std_daily_demand' : 1,
     'delivery_func' : [lambda x: 0.5*exp(-0.5*x),lambda x: 100],
-    'delivery_split_centre' : 1,
+    'delivery_split_centre' : 5,
     'delivery_split_std' : 1,
     'verbose': False
 }
