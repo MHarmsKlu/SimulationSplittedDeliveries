@@ -306,11 +306,14 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         "Bank Transfer"
     ]
 
-    order_init_df = pd.DataFrame({
-        'Timestamp': pd.Series(dtype='str'),
-        'Activity': pd.Series(dtype='str')
-    })
     divergence_event_log = pd.DataFrame({
+        'CaseId': pd.Series(dtype='str'),
+        'Timestamp': pd.Series(dtype='str'),
+        'Activity': pd.Series(dtype='str'),
+        'Amount': pd.Series(dtype='int')
+    })
+
+    iteration_convergence_event_log = pd.DataFrame({
         'CaseId': pd.Series(dtype='str'),
         'Timestamp': pd.Series(dtype='str'),
         'Activity': pd.Series(dtype='str'),
@@ -328,7 +331,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
     # Generate order_id for consistency across all activities
     order_id = f"order_{iteration}"
-    initial_item_list = []
+
     for idx, key in enumerate(items):
         items[key]['initial_item_name'] = f"item_{iteration}_{key}"
         items[key]['last_item_id'] = items[key]['initial_item_name']
@@ -374,18 +377,6 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
             "qualifier": "Initial item of order"
         })
 
-    # New order entries for traditional process mining
-    order_entries = {
-        'Timestamp': place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-        'Activity': "Place Order"
-    }, {
-        'Timestamp': send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-        'Activity': "Send Invoice"
-    }, {
-        'Timestamp': receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-        'Activity': "Receive Payment"
-    }
-
     for key, item in items.items():
         # New order entries for traditional process mining
         order_entries = [{
@@ -409,6 +400,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         ]
         # Add entry
         divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
+        iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
 
     # Create events for the log
     events = [
@@ -495,6 +487,8 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(17, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
+
+
         for idx, key in enumerate(items):
             if(day < items[key]['del_days']):
 
@@ -510,6 +504,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 }
                 # Add entry
                 divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([check_entry])], ignore_index=True)
+                iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame([check_entry])], ignore_index=True)
 
                 # Add the current available amount to del_amount
                 items[key]['del_amount'] += items[key]['check_availability_days'][day]
@@ -593,6 +588,8 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     }
                     # Add entry
                     divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([split_entry])], ignore_index=True)
+                    iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame([split_entry])],
+                                                     ignore_index=True)
 
 
                     events.append({
@@ -687,6 +684,15 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 # After Split Item or Check Availability, execute the "Pick Item" activity
                 if items[key]['del_amount'] < items[key]['amount']:
 
+                    # Filter rows with CaseId from iteration_convergence_event_log
+                    filtered_df = iteration_convergence_event_log[iteration_convergence_event_log['CaseId'] == items[key]['initial_item_name']].copy()
+
+                    # Change the CaseId to current item
+                    filtered_df['CaseId'] = items[key]['item_for_Package']
+
+                    # Append the rows to convergence_event_log
+                    convergence_event_log = pd.concat([convergence_event_log, filtered_df], ignore_index=True)
+
                     # New entry for traditional process mining
                     pick_entry = {
                         'CaseId': items[key]['initial_item_name'],
@@ -696,6 +702,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     }
                     # Add entry
                     divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+
+                    pick_entry['CaseId'] = items[key]['item_for_Package']
+                    convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([pick_entry])],
+                                                     ignore_index=True)
 
                     # If a Split Item occurred, use the new item_id_2 for Pick Item
                     events.append({
@@ -729,6 +739,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     }
                     # Add entry
                     divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+
+                    pick_entry['CaseId'] = items[key]['item_for_Package']
+                    convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([pick_entry])],
+                                                      ignore_index=True)
 
                     # If no Split Item occurred, use the item_id from Check Availability for Pick Item
                     events.append({
@@ -789,6 +803,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 # Add entry
                 divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pack_entry])], ignore_index=True)
 
+                pack_entry['CaseId'] = items[key]['item_for_Package']
+                convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([pack_entry])],
+                                                  ignore_index=True)
+
         # Add the "Pack Items" activity
         events.append({
             "id": f"e_{iteration}_{day}_8_{company}",
@@ -828,6 +846,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 # Add entry
                 divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([store_entry])], ignore_index=True)
 
+                store_entry['CaseId'] = items[key]['item_for_Package']
+                convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([store_entry])],
+                                                  ignore_index=True)
+
         # Add the "Store Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_9_{company}",
@@ -866,6 +888,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 # Add entry
                 divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([load_entry])], ignore_index=True)
 
+                load_entry['CaseId'] = items[key]['item_for_Package']
+                convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([load_entry])],
+                                                  ignore_index=True)
+
         # Add the "Load Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_10_{company}",
@@ -902,6 +928,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                 # Add entry
                 divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([deliver_entry])], ignore_index=True)
 
+                deliver_entry['CaseId'] = items[key]['item_for_Package']
+                convergence_event_log = pd.concat([convergence_event_log, pd.DataFrame([deliver_entry])],
+                                                  ignore_index=True)
+
         # Add the "Deliver Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_11_{company}",
@@ -933,7 +963,9 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
     # Save the OCEL log as a JSON file
     save_ocel_log_to_json(ocel_log, start_date,verbose)
 
-    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}", 'Output/div')
+    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}_div", 'Output/div')
+
+    save_dataframe_to_csv(convergence_event_log, f"OrderProcess_{start_date}_conv", 'Output/conv')
 
     return ocel_log
 
