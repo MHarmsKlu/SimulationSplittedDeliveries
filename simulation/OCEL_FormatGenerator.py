@@ -337,6 +337,14 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
     # Append the Order object to the list of objects
     objects.append(order_object)
 
+    item_relationships = []
+
+    for key, item in items.items():
+        item_relationships.append({
+            "objectId": items[key]['initial_item_name'],
+            "qualifier": "Initial item of order"
+        })
+
     # Create events for the log
     events = [
         {
@@ -355,7 +363,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     "objectId": order_id,
                     "qualifier": "Regular placement of order"
                 }
-            ],
+            ] + item_relationships,
         },
         {
             "id": f"e_{iteration}_2_{company}",
