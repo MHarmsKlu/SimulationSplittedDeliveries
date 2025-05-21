@@ -17,6 +17,17 @@ def convert_int64_to_int(obj):
     return obj
 
 
+def save_dataframe_to_csv(df: pd.DataFrame, filename, directory):
+    # Create the directory if it doesn't exist
+    os.makedirs(directory, exist_ok=True)
+
+    # Full path to the target file
+    file_path = os.path.join(directory, filename)
+
+    # Save the DataFrame as a CSV file
+    df.to_csv(file_path, index=False)
+
+
 # Function to save the OCEL log in JSON format
 def save_ocel_log_to_json(ocel_log, start_date, verbose=False):
     # Convert any np.int64 values to regular Python int
@@ -295,6 +306,24 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         "Bank Transfer"
     ]
 
+    order_init_df = pd.DataFrame({
+        'Timestamp': pd.Series(dtype='str'),
+        'Activity': pd.Series(dtype='str')
+    })
+    divergence_event_log = pd.DataFrame({
+        'CaseId': pd.Series(dtype='str'),
+        'Timestamp': pd.Series(dtype='str'),
+        'Activity': pd.Series(dtype='str'),
+        'Amount': pd.Series(dtype='int')
+    })
+
+    convergence_event_log = pd.DataFrame({
+        'CaseId': pd.Series(dtype='str'),
+        'Timestamp': pd.Series(dtype='str'),
+        'Activity': pd.Series(dtype='str'),
+        'Amount': pd.Series(dtype='int')
+    })
+
     objects = []
 
     # Generate order_id for consistency across all activities
@@ -344,6 +373,42 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
             "objectId": items[key]['initial_item_name'],
             "qualifier": "Initial item of order"
         })
+
+    # New order entries for traditional process mining
+    order_entries = {
+        'Timestamp': place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+        'Activity': "Place Order"
+    }, {
+        'Timestamp': send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+        'Activity': "Send Invoice"
+    }, {
+        'Timestamp': receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+        'Activity': "Receive Payment"
+    }
+
+    for key, item in items.items():
+        # New order entries for traditional process mining
+        order_entries = [{
+            'CaseId': items[key]['initial_item_name'],
+            'Timestamp': place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            'Activity': "Place Order",
+            'Amount': items[key]['amount']
+        },
+        {
+            'CaseId': items[key]['initial_item_name'],
+            'Timestamp': send_invoice_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            'Activity': "Send Invoice",
+            'Amount': items[key]['amount']
+        },
+        {
+            'CaseId': items[key]['initial_item_name'],
+            'Timestamp': receive_payment_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+            'Activity': "Receive Payment",
+            'Amount': items[key]['amount']
+        }
+        ]
+        # Add entry
+        divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
 
     # Create events for the log
     events = [
@@ -432,10 +497,22 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
         for idx, key in enumerate(items):
             if(day < items[key]['del_days']):
+
+                item_check_availability_timestamp = check_availability_timestamp + timedelta(
+            minutes=np.random.randint(0, 20))
+
+                # New entry for traditional process mining
+                check_entry = {
+                    'CaseId': items[key]['initial_item_name'],
+                    'Timestamp': item_check_availability_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'Activity': "Check Availability",
+                    'Amount': items[key]['amount'] - items[key]['del_amount']
+                }
+                # Add entry
+                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([check_entry])], ignore_index=True)
+
                 # Add the current available amount to del_amount
                 items[key]['del_amount'] += items[key]['check_availability_days'][day]
-                item_check_availability_timestamp = check_availability_timestamp + timedelta(
-            minutes=np.random.randint(-20, 20))
 
                 # Add the "Check Availability" event
                 events.append({
@@ -506,6 +583,17 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     objects.append(item_object)
 
                     item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(0, 20))
+
+                    # New entry for traditional process mining
+                    split_entry = {
+                        'CaseId': items[key]['initial_item_name'],
+                        'Timestamp': item_split_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        'Activity': "Split Item",
+                        'Amount': items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
+                    }
+                    # Add entry
+                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([split_entry])], ignore_index=True)
+
 
                     events.append({
                         "id": f"e_{iteration}_{day}_5_{company}_{key}",
@@ -598,6 +686,17 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
                 # After Split Item or Check Availability, execute the "Pick Item" activity
                 if items[key]['del_amount'] < items[key]['amount']:
+
+                    # New entry for traditional process mining
+                    pick_entry = {
+                        'CaseId': items[key]['initial_item_name'],
+                        'Timestamp': item_pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        'Activity': "Pick Item",
+                        'Amount': items[key]['check_availability_days'][day]
+                    }
+                    # Add entry
+                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+
                     # If a Split Item occurred, use the new item_id_2 for Pick Item
                     events.append({
                         "id": f"e_{iteration}_{day}_6_{company}_{key}",
@@ -620,6 +719,17 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     if verbose:
                         print(f"Pick Item activity for {items[key]['new_item_id_2']} after Split Item at {item_pick_item_timestamp}")
                 else:
+
+                    # New entry for traditional process mining
+                    pick_entry = {
+                        'CaseId': items[key]['initial_item_name'],
+                        'Timestamp': item_pick_item_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                        'Activity': "Pick Item",
+                        'Amount': items[key]['check_availability_days'][day]
+                    }
+                    # Add entry
+                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+
                     # If no Split Item occurred, use the item_id from Check Availability for Pick Item
                     events.append({
                         "id": f"e_{iteration}_{day}_7_{company}_{key}",
@@ -669,6 +779,16 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     "qualifier": "Regular pack of item"
                 })
 
+                # New entry for traditional process mining
+                pack_entry = {
+                    'CaseId': items[key]['initial_item_name'],
+                    'Timestamp': pack_items_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'Activity': "Pack Items",
+                    'Amount': items[key]['check_availability_days'][day]
+                }
+                # Add entry
+                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pack_entry])], ignore_index=True)
+
         # Add the "Pack Items" activity
         events.append({
             "id": f"e_{iteration}_{day}_8_{company}",
@@ -695,6 +815,19 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         # After Pack Items, execute the "Store Package" activity
         store_package_timestamp = pack_items_timestamp + timedelta(minutes=np.random.randint(5, 20))  # 5 to 20 minutes
         store_package_timestamp = adjust_to_working_hours(store_package_timestamp)
+
+        for key, item in items.items():
+            if day < item['del_days']:
+                # New entry for traditional process mining
+                store_entry = {
+                    'CaseId': items[key]['initial_item_name'],
+                    'Timestamp': store_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'Activity': "Store Package",
+                    'Amount': items[key]['check_availability_days'][day]
+                }
+                # Add entry
+                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([store_entry])], ignore_index=True)
+
         # Add the "Store Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_9_{company}",
@@ -720,6 +853,19 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         load_package_timestamp = store_package_timestamp + timedelta(
             minutes=np.random.randint(20, 360))  # 20 minutes to 6 hours
         load_package_timestamp = adjust_to_working_hours(load_package_timestamp)
+
+        for key, item in items.items():
+            if day < item['del_days']:
+                # New entry for traditional process mining
+                load_entry = {
+                    'CaseId': items[key]['initial_item_name'],
+                    'Timestamp': load_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'Activity': "Load Package",
+                    'Amount': items[key]['check_availability_days'][day]
+                }
+                # Add entry
+                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([load_entry])], ignore_index=True)
+
         # Add the "Load Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_10_{company}",
@@ -743,6 +889,19 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
         # After Load Package, execute the "Deliver Package" activity
         deliver_package_timestamp = load_package_timestamp + timedelta(days=np.random.randint(3, 6))  # 3 to 6 days
+
+        for key, item in items.items():
+            if day < item['del_days']:
+                # New entry for traditional process mining
+                deliver_entry = {
+                    'CaseId': items[key]['initial_item_name'],
+                    'Timestamp': deliver_package_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'Activity': "Deliver Package",
+                    'Amount': items[key]['check_availability_days'][day]
+                }
+                # Add entry
+                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([deliver_entry])], ignore_index=True)
+
         # Add the "Deliver Package" activity
         events.append({
             "id": f"e_{iteration}_{day}_11_{company}",
@@ -773,6 +932,10 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
     # Save the OCEL log as a JSON file
     save_ocel_log_to_json(ocel_log, start_date,verbose)
+
+    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}", 'Output/div')
+
+    print(divergence_event_log)
 
     return ocel_log
 
