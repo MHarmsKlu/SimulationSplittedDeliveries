@@ -427,7 +427,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         pick_item_timestamp = adjust_to_working_hours(pick_item_timestamp)
 
         # After Pick Item, execute the "Pack Items" activity
-        pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(5, 60))  # 5 minutes to 1 hour
+        pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(17, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
 
         for idx, key in enumerate(items):
@@ -505,7 +505,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     # Append the Order object to the list of objects
                     objects.append(item_object)
 
-                    item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+                    item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(0, 20))
 
                     events.append({
                         "id": f"e_{iteration}_{day}_5_{company}_{key}",
@@ -594,7 +594,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     # Append the Order object to the list of objects
                     objects.append(item_object)
 
-                item_pick_item_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+                item_pick_item_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(0, 14))
 
                 # After Split Item or Check Availability, execute the "Pick Item" activity
                 if items[key]['del_amount'] < items[key]['amount']:
