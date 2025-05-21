@@ -22,6 +22,9 @@ class Simulation:
         self.total_demand = 0
         self.global_out_of_stock = 0
         self.global_total_holding_costs = 0
+        self.global_inventory_history_on_hand = []
+        self.global_inventory_history_in_transit=[]
+        self.global_inventory_history_total=[]
 
         self.sku_data = {}
         for sku in self.warehouse.SKUs.keys():
@@ -58,19 +61,21 @@ class Simulation:
             'ocel:timestamp_y', 'ocel:type', 'ocel:qualifier'],
             errors="ignore")
         shipments_with_time_and_qty = relations_with_timestamps.merge(filtered_ocel.objects, on="ocel:oid")
-
+        
         for id,shipment in shipments_with_time_and_qty.iterrows():
             # TODO: refactor to multiple SKUs once maxis part is done
             goods = {}
-            for item in ocel.o2o[ocel['ocel:oid']==shipment['ocel:oid']]['ocel:oid_2'].unique():
-                goods[]
-            self.shipment_schedule.append(Shipment(ship_id=id, order_id=order.id, quantity=shipment["amount"], delivery_date=shipment["ocel:timestamp_x"].to_pydatetime()))
+            for item in ocel.o2o[ocel.o2o['ocel:oid']==shipment['ocel:oid']]['ocel:oid_2'].unique():
+                item_obj = ocel.objects[ocel.objects['ocel:oid']==item]
+                goods[int(item_obj['material_id'].values[0])] = item_obj["amount"].values[0]
+
+            self.shipment_schedule.append(Shipment(ship_id=id, order_id=order.id, goods=goods, delivery_date=shipment["ocel:timestamp_x"].to_pydatetime()))
     
     def simulate_deliveries(self):
         # 1. receive any delivereies
             for shipment in self.shipment_schedule[:]:
                 if shipment.delivery_date.date() == self.current_date.date():
-                    self.warehouse.receive_shipment(shipment=shipment, date=self.current_date)
+                    self.warehouse.receive_shipment(shipment=shipment)
 
                     self.shipment_schedule.remove(shipment)
 
@@ -91,14 +96,12 @@ class Simulation:
         self.global_fulfilled_demand += fulfilled_demand_today
         self.global_backorders += backorders_today  
         self.global_total_holding_costs += self.warehouse.current_holding_cost
-
-        self.past_safety_stock.append(self.warehouse.safety_stock)
         # self.past_rops.append(self.warehouse.rop)
         # self.past_eoqs.append(self.warehouse.eoq)
 
-        self.inventory_history_on_hand.append(self.warehouse.inventory)
-        self.inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
-        self.inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
+        self.global_inventory_history_on_hand.append(self.warehouse.inventory)
+        self.global_inventory_history_in_transit.append(self.warehouse.inventory_in_transit)
+        self.global_inventory_history_total.append(self.warehouse.inventory + self.warehouse.inventory_in_transit)
 
         if self.warehouse.inventory == 0:
             self.global_out_of_stock += 1
@@ -123,7 +126,7 @@ class Simulation:
             
             self.collect_global_data(demand_today, fulfilled_demand_today, backorders_today)
             for sku in self.warehouse.SKUs.keys():
-                collect_sku_data(sku)
+                self.collect_sku_data(sku)
 
             
 
@@ -155,24 +158,24 @@ class Simulation:
             'backorders' : self.warehouse.SKUs[sku].backorders,
             'stock_outs' : self.warehouse.SKUs[sku].out_of_stock,
             'total_holding_costs' : self.warehouse.SKUs[sku].total_holding_costs,
-            'total_inventory_on_hand' : sum(self.sku_data[sku].inventory_history_on_hand),
+            'total_inventory_on_hand' : sum(self.sku_data[sku]['inventory_history_on_hand']),
             # 'mean_lead_time' : st.mean(self.warehouse.order_performances),
             # 'mean_order_size' : st.mean(self.warehouse.order_sizes)
         }
         if report == True:
-            for key, value in self.results.items():
+            for key, value in self.sku_results[sku].items():
                 print(f"{key}: {value}")
 
         return self.results
     def visualize(self):
         # --- Visualization ---
         plt.figure(figsize=(12, 6))
-        plt.plot(self.inventory_history_on_hand, label='Inventory On hand')
-        #plt.plot(self.inventory_history_in_transit, label='Inventory in transit')
-        plt.plot(self.inventory_history_total, label='Total Inventory')
-        plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
-        plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
-        plt.plot(self.past_safety_stock, color='g', linestyle='--', label='safety stock')
+        plt.plot(self.global_inventory_history_on_hand, label='Inventory On hand')
+        plt.plot(self.global_inventory_history_in_transit, label='Inventory in transit')
+        plt.plot(self.global_inventory_history_total, label='Total Inventory')
+        # plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
+        # plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
+        # plt.plot(self.past_safety_stock, color='g', linestyle='--', label='safety stock')
         plt.title('Inventory Level Over Time')
         plt.xlabel('Day')
         plt.ylabel('Inventory')

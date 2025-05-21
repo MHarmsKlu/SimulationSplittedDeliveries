@@ -2,7 +2,7 @@ from datetime import datetime
 
 class Order_SKU: 
     def __init__(self, sku_id,  order_placed, quantity,verbose=False ):
-        self.id = id
+        self.id = sku_id
         self.placed = order_placed
         self.quantity = quantity
         self.delivered_quantity = 0
@@ -12,7 +12,7 @@ class Order_SKU:
 
     def update(self, shipment):
         self.shipments.append(shipment)
-        self.delivered_quantity += shipment.quantity
+        self.delivered_quantity += shipment.SKUs[self.id]
 
         if self.quantity == self.delivered_quantity:
             self.complete = True
@@ -28,8 +28,14 @@ class Order:
             self.SKUs[sku] = Order_SKU(sku, self.placed, qty )
 
     def update(self, shipment):
-        for sku in self.SKUs:
-            sku.update(shipment)
+        complete = True
+        for sku in shipment.SKUs.keys():
+            self.SKUs[sku].update(shipment)
+            if not self.SKUs[sku].complete:
+                complete = False
+        if complete:
+            self.complete = True
+        
         
 class Shipment:
     def __init__(self,ship_id, order_id, goods, delivery_date):

@@ -65,30 +65,30 @@ class Warehouse_SKU:
             self.out_of_stock += 1
         return fulfilled_demand_today, backorders_today
 
-    def receive_shipment(self, shipment,order):
-        if order.complete:
-            self.evaluate_order(order.SKUs[self.id])
-        self.inventory += shipment.SKUs[self.id].quantity
-        self.inventory_in_transit -= shipment.SKUs[self.id].quantity
+    def receive_shipment(self, shipment,order_sku):
+        if order_sku.complete:
+            self.evaluate_order(order_sku)
+        self.inventory += shipment.SKUs[self.id]
+        self.inventory_in_transit -= shipment.SKUs[self.id]
         return self.inventory
 
-    def evaluate_order(self,order):
+    def evaluate_order(self,order_sku):
         if self.kpi == "order_completion":
-            order_performance  = (order.completed.date() - order.placed.date()).days
+            order_performance  = (order_sku.completed.date() - order_sku.placed.date()).days
         if self.kpi == "item_completion":
             shipment_performances = []
-            for ship in order.shipments:
-                shipment_performances.append((ship.delivery_date.date() - order.placed.date()).days )
+            for ship in order_sku.shipments:
+                shipment_performances.append((ship.delivery_date.date() - order_sku.placed.date()).days )
             order_performance = st.mean(shipment_performances)
         if self.kpi == "item_distribution_mean":
             shipment_dates = []
             shipment_quantities = []
-            for ship in order.shipments:
-                shipment_dates.append((ship.delivery_date.date() - order.placed.date()).days )
+            for ship in order_sku.shipments:
+                shipment_dates.append((ship.delivery_date.date() - order_sku.placed.date()).days )
                 shipment_quantities.append(ship.quantity)
             order_performance = fit_distribution(shipment_dates,shipment_quantities)
         
-        self.open_orders.remove(order)
+        
         self.order_performances.append(order_performance)
         self.update_safety_stock()
         self.update_rop()
@@ -121,20 +121,22 @@ class Warehouse:
     @property             
     def inventory(self):
         inventory = 0
-        for sku in self.SKUs:
+        for sku in self.SKUs.values():
             inventory += sku.inventory
         return inventory
     @property             
     def inventory_in_transit(self):
         inventory_in_transit = 0
-        for sku in self.SKUs:
+        for sku in self.SKUs.values():
             inventory_in_transit += sku.inventory_in_transit
+        if inventory_in_transit < 0:
+            print("here")
         return inventory_in_transit
     
     @property
     def current_holding_cost(self):
         current_holding_cost = 0
-        for sku in self.SKUs:
+        for sku in self.SKUs.values():
             current_holding_cost += sku.current_holding_cost
         return current_holding_cost
 
@@ -145,10 +147,13 @@ class Warehouse:
             order_sku_config = sku.monitor_inventory()
             if order_sku_config:
                 order_config[sku_id] = order_sku_config
-        order = Order(id=self.orders_placed, order_placed=date,sku_configs=order_config)
-        self.open_orders.append(order)
-        self.orders_placed += 1
-        return order
+        if len(order_config.values()) > 0:
+            order = Order(id=self.orders_placed, order_placed=date,sku_configs=order_config)
+            self.open_orders.append(order)
+            self.orders_placed += 1
+            return order
+        else:
+            return False
 
     def consume_inventory(self, date, demands):
         fulfilled_demand = 0
@@ -165,7 +170,9 @@ class Warehouse:
             if order.id == shipment.order_id:
                 order.update(shipment)
                 for sku in shipment.SKUs.keys():
-                    self.SKUs[sku].receive_shipment(shipment, order)
+                    self.SKUs[sku].receive_shipment(shipment, order.SKUs[sku])
+            if order.complete:
+                self.open_orders.remove(order)
         return self.inventory
 
     #TODO add global statistics as property
