@@ -61,7 +61,7 @@ class Simulation:
             'ocel:timestamp_y', 'ocel:type', 'ocel:qualifier'],
             errors="ignore")
         shipments_with_time_and_qty = relations_with_timestamps.merge(filtered_ocel.objects, on="ocel:oid")
-        
+
         for id,shipment in shipments_with_time_and_qty.iterrows():
             # TODO: refactor to multiple SKUs once maxis part is done
             goods = {}
@@ -171,7 +171,7 @@ class Simulation:
         # --- Visualization ---
         plt.figure(figsize=(12, 6))
         plt.plot(self.global_inventory_history_on_hand, label='Inventory On hand')
-        plt.plot(self.global_inventory_history_in_transit, label='Inventory in transit')
+        #plt.plot(self.global_inventory_history_in_transit, label='Inventory in transit')
         plt.plot(self.global_inventory_history_total, label='Total Inventory')
         # plt.plot(self.past_rops, color='r', linestyle='--', label='Reorder Point')
         # plt.plot(self.past_eoqs, color='y', linestyle='--', label='EOQ')
