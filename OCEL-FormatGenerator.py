@@ -322,11 +322,6 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         "id": order_id,
         "type": "Order",
         "attributes": [
-            {
-                "name": "amount",
-                "time": place_order_timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
-                "value": amount
-            }
         ],
         "relationships": []
     }
@@ -425,16 +420,6 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         # After Pick Item, execute the "Pack Items" activity
         pack_items_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(5, 60))  # 5 minutes to 1 hour
         pack_items_timestamp = adjust_to_working_hours(pack_items_timestamp)
-
-        package_id = generate_unique_id("package", iteration, 'p')
-        package_object = {
-            "id": package_id,
-            "type": "Package",
-            "attributes": [],
-            "relationships":
-                [
-                ]
-        }
 
         for idx, key in enumerate(items):
             if(day < items[key]['del_days']):
@@ -643,6 +628,15 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     if verbose:
                         print(f"Pick Item activity for {items[key]['last_item_id']} after Check Availability at {item_pick_item_timestamp}")
 
+        package_id = generate_unique_id("package", iteration, 'p')
+        package_object = {
+            "id": package_id,
+            "type": "Package",
+            "attributes": [],
+            "relationships":
+                [
+                ]
+        }
         for key in items:
             if day < items[key]['del_days']:
                 package_object["relationships"].append({
