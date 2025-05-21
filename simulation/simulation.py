@@ -11,7 +11,7 @@ import time
 class Simulation:
     def __init__(
         self, config:dict ):
-        keys= ['start_date', 'days', 'warehouse', 'seed', 'mean_daily_demand','std_daily_demand','delivery_func', 'delivery_split_centre', 'delivery_split_std', 'verbose']
+        keys= ['start_date', 'days', 'warehouse', 'seed', 'mean_daily_demand','std_daily_demand','delivery_func', 'delivery_split_centre', 'delivery_split_std', 'output','verbose']
         for key in keys:
             setattr(self, key, config.get(key))
         
@@ -50,10 +50,10 @@ class Simulation:
         for sku_id, sku in order.SKUs.items():
             delivery_days = max(1, int(np.random.normal(self.delivery_split_centre, self.delivery_split_std)))
             ocel_config[sku_id] = {'amount': sku.quantity, 'del_days': delivery_days, 'func':  self.delivery_func[sku_id]}
-        generate_ocel_event_log(start_date=self.current_date, items=ocel_config, iteration=order.id)
+        generate_ocel_event_log(start_date=self.current_date, items=ocel_config, iteration=order.id, output=self.output)
         
         date_str = adjust_to_weekday(self.current_date).strftime("%Y-%m-%d")
-        ocel = pm.read_ocel2_json(f"Output/OrderProcess_{date_str}.json")
+        ocel = pm.read_ocel2_json(f"{self.output}/OrderProcess_{date_str}.json")
         filtered_ocel = pm.filter_ocel_event_attribute(ocel,'ocel:activity',['Deliver Package'])
 
         relations_with_timestamps = filtered_ocel.events.merge(filtered_ocel.relations, on="ocel:eid", ).drop(columns=['company',

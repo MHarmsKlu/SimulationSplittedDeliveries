@@ -29,19 +29,18 @@ def save_dataframe_to_csv(df: pd.DataFrame, filename, directory):
 
 
 # Function to save the OCEL log in JSON format
-def save_ocel_log_to_json(ocel_log, start_date, verbose=False):
+def save_ocel_log_to_json(ocel_log, start_date,output, verbose=False):
     # Convert any np.int64 values to regular Python int
     ocel_log = convert_int64_to_int(ocel_log)
 
     # Create the Output directory if it does not exist
-    output_dir = "Output"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(output):
+        os.makedirs(output)
 
     # Create the filename with the format "OrderProcess_<StartDate>.json"
     date_str = start_date.strftime("%Y-%m-%d")
     filename = f"OrderProcess_{date_str}.json"
-    file_path = os.path.join(output_dir, filename)
+    file_path = os.path.join(output, filename)
 
     # Save the OCEL log in JSON format
     with open(file_path, "w") as f:
@@ -194,7 +193,7 @@ def distribute_values(func, time_slots, target_sum, verbose=False):
 
 
 # Function to generate OCEL event log
-def generate_ocel_event_log(start_date, items, iteration, company="company_1", verbose=False):
+def generate_ocel_event_log(start_date, items, iteration, output, company="company_1", verbose=False):
 
     object_types = [
         {
@@ -979,33 +978,33 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
     }
 
     # Save the OCEL log as a JSON file
-    save_ocel_log_to_json(ocel_log, start_date,verbose)
+    save_ocel_log_to_json(ocel_log, start_date,output,verbose,)
 
-    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}_div", 'Output/div')
+    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}_div.csv", f'{output}/div')
 
-    save_dataframe_to_csv(convergence_event_log, f"OrderProcess_{start_date}_conv", 'Output/conv')
+    save_dataframe_to_csv(convergence_event_log, f"OrderProcess_{start_date}_conv.csv", f'{output}/conv')
 
     return ocel_log
 
 
 # Example usage of the function
-start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
-amount = [800, 500, 20]  # Example amount for the order
-func = [lambda x: np.exp(2 * x), lambda x: 2, lambda x: x ** 2]  # Example function for distributing the amount over time
-del_days = [2, 3, 4]  # Test with 10 days
-items = {}
+# start_date = datetime(2025, 4, 7, 8, 0, 0)  # Example start date (Monday, 8 AM)
+# amount = [800, 500, 20]  # Example amount for the order
+# func = [lambda x: np.exp(2 * x), lambda x: 2, lambda x: x ** 2]  # Example function for distributing the amount over time
+# del_days = [2, 3, 4]  # Test with 10 days
+# items = {}
 
-for i in range(len(amount)):
-    items[i] = {
-        'amount': amount[i],
-        'func': func[i](del_days[i]),
-        'del_days': del_days[i]
-    }
+# for i in range(len(amount)):
+#     items[i] = {
+#         'amount': amount[i],
+#         'func': func[i](del_days[i]),
+#         'del_days': del_days[i]
+#     }
 
 
 
 # Generate the OCEL event log
-ocel_event_log = generate_ocel_event_log(start_date, items, 1)
+#ocel_event_log = generate_ocel_event_log(start_date, items, 1)
 
 # # Set pandas options to display all rows and columns
 # pd.set_option('display.max_rows', None)  # Display all rows

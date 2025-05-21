@@ -52,7 +52,8 @@ sim_config = {
     'delivery_func' : [lambda x: 0.5*exp(-0.5*x),lambda x: 100],
     'delivery_split_centre' : 5,
     'delivery_split_std' : 1,
-    'verbose': False
+    'verbose': False,
+    'output' : 'Output'
 }
 
 simulation = Simulation( config=sim_config)
