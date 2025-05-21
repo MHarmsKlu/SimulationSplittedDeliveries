@@ -612,7 +612,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                         ],
                         "relationships": [
                             {
-                                "objectId": items[key]['new_item_id_2'],
+                                "objectId": items[key]['item_for_Package'],
                                 "qualifier": "Regular pick of item"
                             }
                         ]
@@ -633,7 +633,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                         ],
                         "relationships": [
                             {
-                                "objectId": items[key]['last_item_id'],
+                                "objectId": items[key]['item_for_Package'],
                                 "qualifier": "Regular pick of item"
                             }
                         ]
