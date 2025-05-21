@@ -304,6 +304,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         items[key]['initial_item_name'] = f"item_{iteration}_{key}"
         items[key]['last_item_id'] = items[key]['initial_item_name']
         items[key]['del_amount'] = 0
+        items[key]['item_for_Package'] = items[key]['initial_item_name']
         # Distribute values for the amount to determine when to check availability
         items[key]['check_availability_days'] = distribute_values(
             items[key]['func'],
@@ -459,6 +460,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     # Trigger Split Item if the condition is met
                     items[key]['new_item_id_1'] = generate_unique_id("item",iteration, key)
                     items[key]['new_item_id_2'] = generate_unique_id("item",iteration, key)
+                    items[key]['item_for_Package'] = items[key]['new_item_id_2']
 
                     # Print debug for Split Item
                     if verbose:
@@ -558,6 +560,9 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
                     items[key]['last_item_id'] = items[key]['new_item_id_1']
 
                 else:
+
+                    items[key]['item_for_Package'] = items[key]['last_item_id']
+
                     item_object = {
                         "id": items[key]['last_item_id'],
                         "type": "Item",
@@ -640,7 +645,7 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
         for key in items:
             if day < items[key]['del_days']:
                 package_object["relationships"].append({
-                    "objectId": items[key]['last_item_id'],
+                    "objectId": items[key]['item_for_Package'],
                     "qualifier": "Package of item"
                 })
 
