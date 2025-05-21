@@ -935,8 +935,6 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
     save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}", 'Output/div')
 
-    print(divergence_event_log)
-
     return ocel_log
 
 
