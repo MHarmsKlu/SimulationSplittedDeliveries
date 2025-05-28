@@ -179,7 +179,7 @@ sku_config_1 = {
     'rop' : 300,
     'eoq' : 0,
     'z_score': 1.65,
-    'order_base_cost' : 60,
+    'order_base_cost' : 30,
     'holding_cost' : 1 , 
     'inventory' : 500,
     'kpi' : 'order_completion',
@@ -212,10 +212,11 @@ for i in tqdm(range(0,11)):
 
     simulation.run()
 
-    div_results = analyse_trad_pm(path=f"Output_{i}/div/", output=f"Output_{i}/div/dfg.png", type="div")
+    div_items_results = analyse_trad_pm(path=f"Output_{i}/div_items/", output=f"Output_{i}/div_items/dfg.png", type="div_items")
+    div_order_results = analyse_trad_pm(path=f"Output_{i}/div_order/", output=f"Output_{i}/div_order/dfg.png", type="div_order")
     conv_results = analyse_trad_pm(path=f"Output_{i}/conv/", output=f"Output_{i}/conv/dfg.png", type="conv")
     ocpm_results = analyse_ocpm(path=f"Output_{i}/", output=f"Output_{i}/ocdfg.png")
-    iteration_results_dict = {"mean_splits": i, **div_results,**conv_results,**ocpm_results}
+    iteration_results_dict = {"mean_splits": i, **div_items_results, **div_order_results,**conv_results,**ocpm_results}
     iteration_results_df = pandas.DataFrame.from_dict(iteration_results_dict, orient='index').T
     results = pandas.concat([results,iteration_results_df])
 
