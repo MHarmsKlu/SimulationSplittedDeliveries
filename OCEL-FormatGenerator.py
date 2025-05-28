@@ -411,12 +411,12 @@ def generate_ocel_event_log(start_date, items, iteration, company="company_1", v
 
         iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
 
-        for entry in order_entries:
-            entry['CaseId'] = items[key]['order']
+    for entry in order_entries:
+        entry['CaseId'] = items[key]['order']
 
-        # Add entry
-        divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame(order_entries)],
-                                                   ignore_index=True)
+    # Add entry
+    divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame(order_entries)],
+                                               ignore_index=True)
 
     # Create events for the log
     events = [
