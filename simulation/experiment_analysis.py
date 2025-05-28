@@ -118,8 +118,8 @@ def analyse_ocpm(path,output):
 
     num_events = ocel.get_extended_table().shape[0]
 
-    lead_times = []
-    partial_lead_times = []
+    st_lead_times = []
+    st_partial_lead_times = []
     for tree in split_trees.values():
         deliveries = []
         for leaf in tree.leaves:
@@ -128,15 +128,39 @@ def analyse_ocpm(path,output):
             deliveries.append(package_trace[package_trace['ocel:activity']== "Deliver Package"]["ocel:timestamp"].max())
         start_trace = pm4py.filter_ocel_objects(ocel, [tree.root]).get_extended_table()
         start = start_trace[start_trace["ocel:activity"]=="Place Order"]["ocel:timestamp"].min()
-        lead_times.append((max(deliveries)-start).days)
+        st_lead_times.append((max(deliveries)-start).days)
         all_partial_lead_times = []
         for end in deliveries:
             all_partial_lead_times.append((end-start).days)
-        partial_lead_times.append(st.mean(all_partial_lead_times))
-    mean_lead_time = st.mean(lead_times)
-    mean_partial_lead_time = st.mean(partial_lead_times)
+        st_partial_lead_times.append(st.mean(all_partial_lead_times))
+    st_mean_lead_time = st.mean(st_lead_times)
+    st_mean_partial_lead_time = st.mean(st_partial_lead_times)
 
-    return {"ocpm_num_events" :num_events, "ocpm_mean_lead_time" : mean_lead_time, "ocpm_mean_partial_lead_time": mean_partial_lead_time}
+    order_lead_times = []
+    order_partial_lead_times = []
+    for nested_root in nested_roots:
+        if len(nested_root) > 1:
+            print("here")
+        order_split_trees = [split_trees[root] for root in nested_root]
+        deliveries = []
+        start_trace = pm4py.filter_ocel_objects(ocel, nested_root).get_extended_table()
+        start = start_trace[start_trace["ocel:activity"]=="Place Order"]["ocel:timestamp"].min()
+        for tree in order_split_trees:
+            for leaf in tree.leaves:
+                package = ocel.o2o[(ocel.o2o["ocel:oid_2"]==leaf)& (ocel.o2o["ocel:qualifier"]=="Package of item")]["ocel:oid"].values[0]
+                package_trace = pm4py.filter_ocel_objects(ocel, [package]).get_extended_table()
+                deliveries.append(package_trace[package_trace['ocel:activity']== "Deliver Package"]["ocel:timestamp"].max())
+        order_lead_times.append((max(deliveries)-start).days)
+        all_partial_lead_times = []
+        for end in deliveries:
+            all_partial_lead_times.append((end-start).days)
+        order_partial_lead_times.append(st.mean(all_partial_lead_times))
+    order_mean_lead_time = st.mean(order_lead_times)
+    order_mean_partial_lead_time = st.mean(order_partial_lead_times)
+
+    return {"ocpm_num_events" :num_events,
+            "ocpm_st_mean_lead_time" : st_mean_lead_time, "ocpm_st_mean_partial_lead_time": st_mean_partial_lead_time,
+            "ocpm_order_mean_lead_time" : order_mean_lead_time, "ocpm_order_mean_partial_lead_time": order_mean_partial_lead_time}
 
 sku_config_0 = {
     'id' : 0,
