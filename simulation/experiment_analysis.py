@@ -9,7 +9,7 @@ from simulation import Simulation
 from datetime import date, time, datetime
 from tqdm import tqdm
 
-def analyse_trad_pm(path, output):
+def analyse_trad_pm(path, output, type):
     csv_files = [pos_csv for pos_csv in os.listdir(path) if pos_csv.endswith('.csv')]
 
     log_df = pandas.DataFrame()
@@ -35,13 +35,14 @@ def analyse_trad_pm(path, output):
         end = log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Deliver Package")]["Timestamp"].max()
         lead_times.append((end - start).days)
 
+        all_partial_lead_times = []
         for _,end in log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Deliver Package")].iterrows():
-            partial_lead_times.append((end["Timestamp"]-start).days)
-    
+            all_partial_lead_times.append((end["Timestamp"]-start).days)
+        partial_lead_times.append(st.mean(all_partial_lead_times))
     mean_lead_time = st.mean(lead_times)
     mean_partial_lead_time = st.mean(partial_lead_times)
 
-    return num_events, mean_lead_time, mean_partial_lead_time
+    return {f"{type}_num_events" :num_events, f"{type}_mean_lead_time" : mean_lead_time, f"{type}_mean_partial_lead_time": mean_partial_lead_time}
 
 class Split_tree:
     def __init__(self,root):
@@ -121,20 +122,21 @@ def analyse_ocpm(path,output):
     partial_lead_times = []
     for tree in split_trees.values():
         deliveries = []
-        for leave in tree.leaves:
-            package = ocel.o2o[(ocel.o2o["ocel:oid_2"]==leave)& (ocel.o2o["ocel:qualifier"]=="Package of item")]["ocel:oid"].values[0]
+        for leaf in tree.leaves:
+            package = ocel.o2o[(ocel.o2o["ocel:oid_2"]==leaf)& (ocel.o2o["ocel:qualifier"]=="Package of item")]["ocel:oid"].values[0]
             package_trace = pm4py.filter_ocel_objects(ocel, [package]).get_extended_table()
             deliveries.append(package_trace[package_trace['ocel:activity']== "Deliver Package"]["ocel:timestamp"].max())
         start_trace = pm4py.filter_ocel_objects(ocel, [tree.root]).get_extended_table()
         start = start_trace[start_trace["ocel:activity"]=="Place Order"]["ocel:timestamp"].min()
         lead_times.append((max(deliveries)-start).days)
+        all_partial_lead_times = []
         for end in deliveries:
-            partial_lead_times.append((end-start).days)
-
+            all_partial_lead_times.append((end-start).days)
+        partial_lead_times.append(st.mean(all_partial_lead_times))
     mean_lead_time = st.mean(lead_times)
     mean_partial_lead_time = st.mean(partial_lead_times)
 
-    return num_events, mean_lead_time, mean_partial_lead_time
+    return {"ocpm_num_events" :num_events, "ocpm_mean_lead_time" : mean_lead_time, "ocpm_mean_partial_lead_time": mean_partial_lead_time}
 
 sku_config_0 = {
     'id' : 0,
@@ -153,13 +155,13 @@ sku_config_1 = {
     'rop' : 300,
     'eoq' : 0,
     'z_score': 1.65,
-    'order_base_cost' : 30,
+    'order_base_cost' : 60,
     'holding_cost' : 1 , 
     'inventory' : 500,
     'kpi' : 'order_completion',
     'verbose': False
 }
-results = {}
+results = pandas.DataFrame()
 for i in tqdm(range(0,11)):
     warehouse = Warehouse([sku_config_0,sku_config_1])
     output = f"Output_{i}"
@@ -186,10 +188,14 @@ for i in tqdm(range(0,11)):
 
     simulation.run()
 
-    div_results = analyse_trad_pm(path=f"Output_{i}/div/", output=f"Output_{i}/div/dfg.png")
-    conv_results = analyse_trad_pm(path=f"Output_{i}/conv/", output=f"Output_{i}/conv/dfg.png")
+    div_results = analyse_trad_pm(path=f"Output_{i}/div/", output=f"Output_{i}/div/dfg.png", type="div")
+    conv_results = analyse_trad_pm(path=f"Output_{i}/conv/", output=f"Output_{i}/conv/dfg.png", type="conv")
     ocpm_results = analyse_ocpm(path=f"Output_{i}/", output=f"Output_{i}/ocdfg.png")
-    results[i] = [div_results,conv_results,ocpm_results]
+    iteration_results_dict = {"mean_splits": i, **div_results,**conv_results,**ocpm_results}
+    iteration_results_df = pandas.DataFrame.from_dict(iteration_results_dict, orient='index').T
+    results = pandas.concat([results,iteration_results_df])
+
+results.reset_index(drop=True).to_excel("results.xlsx")
     # simulation.evaluate_globally(report=True)
     # for sku in warehouse.SKUs.keys():
     #     simulation.evaluate_skus(sku, report=True)
