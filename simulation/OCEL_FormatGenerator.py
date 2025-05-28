@@ -305,7 +305,14 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
         "Bank Transfer"
     ]
 
-    divergence_event_log = pd.DataFrame({
+    divergence_event_log_order = pd.DataFrame({
+        'CaseId': pd.Series(dtype='str'),
+        'Timestamp': pd.Series(dtype='str'),
+        'Activity': pd.Series(dtype='str'),
+        'Amount': pd.Series(dtype='int')
+    })
+
+    divergence_event_log_items = pd.DataFrame({
         'CaseId': pd.Series(dtype='str'),
         'Timestamp': pd.Series(dtype='str'),
         'Activity': pd.Series(dtype='str'),
@@ -336,6 +343,7 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
         items[key]['last_item_id'] = items[key]['initial_item_name']
         items[key]['del_amount'] = 0
         items[key]['item_for_Package'] = items[key]['initial_item_name']
+        items[key]['order'] = order_id
         # Distribute values for the amount to determine when to check availability
         items[key]['check_availability_days'] = distribute_values(
             items[key]['func'],
@@ -398,8 +406,16 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
         }
         ]
         # Add entry
-        divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
+        divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame(order_entries)], ignore_index=True)
+
         iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame(order_entries)], ignore_index=True)
+
+        for entry in order_entries:
+            entry['CaseId'] = items[key]['order']
+
+        # Add entry
+        divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame(order_entries)],
+                                                   ignore_index=True)
 
     # Create events for the log
     events = [
@@ -502,8 +518,15 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     'Amount': items[key]['amount'] - items[key]['del_amount']
                 }
                 # Add entry
-                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([check_entry])], ignore_index=True)
+                divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([check_entry])], ignore_index=True)
+
                 iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame([check_entry])], ignore_index=True)
+
+                check_entry['CaseId'] = items[key]['order']
+
+                # Add entry
+                divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([check_entry])],
+                                                       ignore_index=True)
 
                 # Add the current available amount to del_amount
                 items[key]['del_amount'] += items[key]['check_availability_days'][day]
@@ -586,9 +609,16 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                         'Amount': items[key]['amount'] - items[key]['del_amount'] + items[key]['check_availability_days'][day]
                     }
                     # Add entry
-                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([split_entry])], ignore_index=True)
+                    divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([split_entry])], ignore_index=True)
+
                     iteration_convergence_event_log = pd.concat([iteration_convergence_event_log, pd.DataFrame([split_entry])],
                                                      ignore_index=True)
+
+                    split_entry['CaseId'] = items[key]['order']
+
+                    # Add entry
+                    divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([split_entry])],
+                                                           ignore_index=True)
 
 
                     events.append({
@@ -701,7 +731,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                         'Amount': items[key]['check_availability_days'][day]
                     }
                     # Add entry
-                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+                    divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([pick_entry])], ignore_index=True)
+
+                    pick_entry['CaseId'] = items[key]['order']
+
+                    # Add entry
+                    divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([pick_entry])],
+                                                           ignore_index=True)
 
                     pick_entry['CaseId'] = items[key]['item_for_Package']
                     pick_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -750,7 +786,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                         'Amount': items[key]['check_availability_days'][day]
                     }
                     # Add entry
-                    divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pick_entry])], ignore_index=True)
+                    divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([pick_entry])], ignore_index=True)
+
+                    pick_entry['CaseId'] = items[key]['order']
+
+                    # Add entry
+                    divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([pick_entry])],
+                                                           ignore_index=True)
 
                     pick_entry['CaseId'] = items[key]['item_for_Package']
                     pick_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -814,7 +856,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     'Amount': items[key]['check_availability_days'][day]
                 }
                 # Add entry
-                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([pack_entry])], ignore_index=True)
+                divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([pack_entry])], ignore_index=True)
+
+                pack_entry['CaseId'] = items[key]['order']
+
+                # Add entry
+                divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([pack_entry])],
+                                                       ignore_index=True)
 
                 pack_entry['CaseId'] = items[key]['item_for_Package']
                 pack_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -858,7 +906,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     'Amount': items[key]['check_availability_days'][day]
                 }
                 # Add entry
-                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([store_entry])], ignore_index=True)
+                divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([store_entry])], ignore_index=True)
+
+                store_entry['CaseId'] = items[key]['order']
+
+                # Add entry
+                divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([store_entry])],
+                                                       ignore_index=True)
 
                 store_entry['CaseId'] = items[key]['item_for_Package']
                 store_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -901,7 +955,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     'Amount': items[key]['check_availability_days'][day]
                 }
                 # Add entry
-                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([load_entry])], ignore_index=True)
+                divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([load_entry])], ignore_index=True)
+
+                load_entry['CaseId'] = items[key]['order']
+
+                # Add entry
+                divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([load_entry])],
+                                                       ignore_index=True)
 
                 load_entry['CaseId'] = items[key]['item_for_Package']
                 load_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -942,7 +1002,13 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     'Amount': items[key]['check_availability_days'][day]
                 }
                 # Add entry
-                divergence_event_log = pd.concat([divergence_event_log, pd.DataFrame([deliver_entry])], ignore_index=True)
+                divergence_event_log_items = pd.concat([divergence_event_log_items, pd.DataFrame([deliver_entry])], ignore_index=True)
+
+                deliver_entry['CaseId'] = items[key]['order']
+
+                # Add entry
+                divergence_event_log_order = pd.concat([divergence_event_log_order, pd.DataFrame([deliver_entry])],
+                                                       ignore_index=True)
 
                 deliver_entry['CaseId'] = items[key]['item_for_Package']
                 deliver_entry['Amount'] = items[key]['check_availability_days'][day]
@@ -980,7 +1046,9 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
     # Save the OCEL log as a JSON file
     save_ocel_log_to_json(ocel_log, start_date,output,verbose,)
 
-    save_dataframe_to_csv(divergence_event_log, f"OrderProcess_{start_date}_div.csv", f'{output}/div')
+    save_dataframe_to_csv(divergence_event_log_items, f"OrderProcess_{start_date}_div_items.csv", f'{output}/div_items')
+
+    save_dataframe_to_csv(divergence_event_log_order, f"OrderProcess_{start_date}_div_order.csv", f'{output}/div_order')
 
     save_dataframe_to_csv(convergence_event_log, f"OrderProcess_{start_date}_conv.csv", f'{output}/conv')
 
