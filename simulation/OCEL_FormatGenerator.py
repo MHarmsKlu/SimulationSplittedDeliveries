@@ -513,7 +513,7 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
             if(day < items[key]['del_days']):
 
                 item_check_availability_timestamp = check_availability_timestamp + timedelta(
-            minutes=np.random.randint(0, 20))
+            minutes=np.random.randint(1, 20))
 
                 # New entry for traditional process mining
                 check_entry = {
@@ -560,7 +560,7 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     print(f"Checking availability for item {items[key]['last_item_id']} at {item_check_availability_timestamp}")
                     print(f"Cumulative available amount (del_amount): {items[key]['del_amount']}")
 
-                item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(-20, 20))
+                item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(1, 20))
 
                 # Check if del_amount is still less than the total amount
                 if items[key]['del_amount'] < items[key]['amount']:
@@ -604,7 +604,7 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     # Append the Order object to the list of objects
                     objects.append(item_object)
 
-                    item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(0, 20))
+                    item_split_item_timestamp = split_item_timestamp + timedelta(minutes=np.random.randint(1, 20))
 
                     # New entry for traditional process mining
                     split_entry = {
@@ -713,7 +713,7 @@ def generate_ocel_event_log(start_date, items, iteration, output, company="compa
                     # Append the Order object to the list of objects
                     objects.append(item_object)
 
-                item_pick_item_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(0, 14))
+                item_pick_item_timestamp = pick_item_timestamp + timedelta(minutes=np.random.randint(1, 14))
 
                 # After Split Item or Check Availability, execute the "Pick Item" activity
                 if items[key]['del_amount'] < items[key]['amount']:
