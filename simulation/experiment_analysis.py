@@ -9,7 +9,7 @@ from simulation import Simulation
 from datetime import date, time, datetime
 from tqdm import tqdm
 
-def analyse_trad_pm(path, output, type):
+def analyse_trad_pm(path, type):
     csv_files = [pos_csv for pos_csv in os.listdir(path) if pos_csv.endswith('.csv')]
 
     log_df = pandas.DataFrame()
@@ -25,12 +25,18 @@ def analyse_trad_pm(path, output, type):
     num_events = log_df.shape[0]
 
     dfg, start, end = pm4py.discover_dfg(log)
-    
-    pm4py.save_vis_dfg(dfg, start, end, output)
+    pm4py.save_vis_dfg(dfg, start, end, f"{path}dfg.png")
+
+    bpmn_graph = pm4py.discover_bpmn_inductive(log)
+    pm4py.save_vis_bpmn(bpmn_graph, f"{path}bpmn.png",) 
 
     lead_times = []
     partial_lead_times = []
+    num_splits = []
+    num_partial_deliveries = []
     for case_id in log_df["CaseId"].unique():
+        num_splits.append(log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Split Item")].shape[0])
+        num_partial_deliveries.append(log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Deliver Package")].shape[0])
         start = log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Place Order")]["Timestamp"].min()
         end = log_df[(log_df["CaseId"]== case_id) & (log_df["Activity"]=="Deliver Package")]["Timestamp"].max()
         lead_times.append((end - start).days)
@@ -41,8 +47,10 @@ def analyse_trad_pm(path, output, type):
         partial_lead_times.append(st.mean(all_partial_lead_times))
     mean_lead_time = st.mean(lead_times)
     mean_partial_lead_time = st.mean(partial_lead_times)
+    mean_num_splits = st.mean(num_splits)
+    mean_num_partial_deliveries = st.mean(num_partial_deliveries)
 
-    return {f"{type}_num_events" :num_events, f"{type}_mean_lead_time" : mean_lead_time, f"{type}_mean_partial_lead_time": mean_partial_lead_time}
+    return {f"{type}_num_events" :num_events, f"{type}_mean_lead_time" : mean_lead_time, f"{type}_mean_partial_lead_time": mean_partial_lead_time, f"{type}_mean_num_splits": mean_num_splits, f"{type}_mean_num_partial_deliveries": mean_num_partial_deliveries}
 
 class Split_tree:
     def __init__(self,root):
@@ -79,7 +87,7 @@ def analyse_ocpm(path,output):
 
     ocel = pm4py.read_ocel2_json("OCEL.json")
     ocdfg = pm4py.discover_ocdfg(ocel)
-    pm4py.save_vis_ocdfg(ocdfg, output, annotation='frequency')
+    pm4py.save_vis_ocdfg(ocdfg, output, annotation='frequency',rankdir="tb")
 
     items = ocel.objects[ocel.objects['ocel:type']=="Item"]["ocel:oid"].unique()
     order_placed = pm4py.filter_ocel_event_attribute(ocel,'ocel:activity',['Place Order'])
@@ -97,7 +105,6 @@ def analyse_ocpm(path,output):
     for root in roots:
         split_trees[root]=(Split_tree(root))
 
-    
     for root in roots:
         queue = [root]
         while queue:
@@ -112,20 +119,25 @@ def analyse_ocpm(path,output):
             else:
                 split_trees[root].leaves.append(current)
 
-    leaves_sum = 0
-    for tree in split_trees.values():
-        leaves_sum += len(tree.leaves)
+    # leaves_sum = 0
+    # for tree in split_trees.values():
+    #     leaves_sum += len(tree.leaves)
 
     num_events = ocel.get_extended_table().shape[0]
 
+    st_num_partial_deliveries= []
+    st_num_splits = []
     st_lead_times = []
     st_partial_lead_times = []
     for tree in split_trees.values():
+        st_num_splits.append(tree.splits)
         deliveries = []
         for leaf in tree.leaves:
             package = ocel.o2o[(ocel.o2o["ocel:oid_2"]==leaf)& (ocel.o2o["ocel:qualifier"]=="Package of item")]["ocel:oid"].values[0]
             package_trace = pm4py.filter_ocel_objects(ocel, [package]).get_extended_table()
             deliveries.append(package_trace[package_trace['ocel:activity']== "Deliver Package"]["ocel:timestamp"].max())
+        
+        st_num_partial_deliveries.append(len(deliveries))
         start_trace = pm4py.filter_ocel_objects(ocel, [tree.root]).get_extended_table()
         start = start_trace[start_trace["ocel:activity"]=="Place Order"]["ocel:timestamp"].min()
         st_lead_times.append((max(deliveries)-start).days)
@@ -135,32 +147,47 @@ def analyse_ocpm(path,output):
         st_partial_lead_times.append(st.mean(all_partial_lead_times))
     st_mean_lead_time = st.mean(st_lead_times)
     st_mean_partial_lead_time = st.mean(st_partial_lead_times)
+    st_mean_num_splits = st.mean(st_num_splits)
+    st_mean_num_partial_deliveries = st.mean(st_num_partial_deliveries)
 
+
+    order_num_partial_deliveries = []
+    order_num_splits = []
     order_lead_times = []
     order_partial_lead_times = []
     for nested_root in nested_roots:
         if len(nested_root) > 1:
-            print("here")
+            print(len(nested_root))
         order_split_trees = [split_trees[root] for root in nested_root]
-        deliveries = []
+        deliveries = pandas.DataFrame()
         start_trace = pm4py.filter_ocel_objects(ocel, nested_root).get_extended_table()
         start = start_trace[start_trace["ocel:activity"]=="Place Order"]["ocel:timestamp"].min()
+        tree_num_splits = 0
         for tree in order_split_trees:
+            tree_num_splits =+ tree.splits
+            
             for leaf in tree.leaves:
                 package = ocel.o2o[(ocel.o2o["ocel:oid_2"]==leaf)& (ocel.o2o["ocel:qualifier"]=="Package of item")]["ocel:oid"].values[0]
                 package_trace = pm4py.filter_ocel_objects(ocel, [package]).get_extended_table()
-                deliveries.append(package_trace[package_trace['ocel:activity']== "Deliver Package"]["ocel:timestamp"].max())
-        order_lead_times.append((max(deliveries)-start).days)
+                deliveries = pandas.concat([deliveries,package_trace[package_trace['ocel:activity']== "Deliver Package"]])
+        delivery_unique = deliveries.drop_duplicates(subset=["ocel:eid"])
+        delivery_timestamps = delivery_unique["ocel:timestamp"]
+        order_lead_times.append((delivery_timestamps.max()-start).days)
+
+        order_num_partial_deliveries.append(len(delivery_timestamps))
         all_partial_lead_times = []
-        for end in deliveries:
+        for end in delivery_timestamps:
             all_partial_lead_times.append((end-start).days)
         order_partial_lead_times.append(st.mean(all_partial_lead_times))
+        order_num_splits.append(tree_num_splits)
     order_mean_lead_time = st.mean(order_lead_times)
     order_mean_partial_lead_time = st.mean(order_partial_lead_times)
+    order_mean_num_splits = st.mean(order_num_splits)
+    order_mean_num_partial_deliveries = st.mean(order_num_partial_deliveries)
 
     return {"ocpm_num_events" :num_events,
-            "ocpm_st_mean_lead_time" : st_mean_lead_time, "ocpm_st_mean_partial_lead_time": st_mean_partial_lead_time,
-            "ocpm_order_mean_lead_time" : order_mean_lead_time, "ocpm_order_mean_partial_lead_time": order_mean_partial_lead_time}
+            "ocpm_st_mean_lead_time" : st_mean_lead_time, "ocpm_st_mean_partial_lead_time": st_mean_partial_lead_time, "ocpm_st_mean_num_splits" : st_mean_num_splits, "ocpm_st_mean_num_partial_deliveries" : st_mean_num_partial_deliveries,
+            "ocpm_order_mean_lead_time" : order_mean_lead_time, "ocpm_order_mean_partial_lead_time": order_mean_partial_lead_time, "ocpm_order_mean_num_splits": order_mean_num_splits, "ocpm_order_mean_num_partial_deliveries": order_mean_num_partial_deliveries}
 
 sku_config_0 = {
     'id' : 0,
@@ -179,7 +206,43 @@ sku_config_1 = {
     'rop' : 300,
     'eoq' : 0,
     'z_score': 1.65,
-    'order_base_cost' : 30,
+    'order_base_cost' : 50,
+    'holding_cost' : 1 , 
+    'inventory' : 500,
+    'kpi' : 'order_completion',
+    'verbose': False
+}
+
+sku_config_2 = {
+    'id' : 2,
+    'rop' : 300,
+    'eoq' : 0,
+    'z_score': 1.65,
+    'order_base_cost' : 60,
+    'holding_cost' : 1 , 
+    'inventory' : 500,
+    'kpi' : 'order_completion',
+    'verbose': False
+}
+
+sku_config_3 = {
+    'id' : 3,
+    'rop' : 300,
+    'eoq' : 0,
+    'z_score': 1.65,
+    'order_base_cost' : 50,
+    'holding_cost' : 1 , 
+    'inventory' : 500,
+    'kpi' : 'order_completion',
+    'verbose': False
+}
+
+sku_config_4 = {
+    'id' : 4,
+    'rop' : 300,
+    'eoq' : 0,
+    'z_score': 1.65,
+    'order_base_cost' : 60,
     'holding_cost' : 1 , 
     'inventory' : 500,
     'kpi' : 'order_completion',
@@ -187,7 +250,7 @@ sku_config_1 = {
 }
 results = pandas.DataFrame()
 for i in tqdm(range(0,11)):
-    warehouse = Warehouse([sku_config_0,sku_config_1])
+    warehouse = Warehouse([sku_config_0,sku_config_1,sku_config_2, sku_config_3, sku_config_4, ])
     output = f"Output_{i}"
     sim_config = {
         'start_date' : datetime.now(),
@@ -196,9 +259,9 @@ for i in tqdm(range(0,11)):
         'seed': 11,  
         'mean_daily_demand' : 50,
         'std_daily_demand' : 1,
-        'delivery_func' : [lambda x: 100,lambda x: 100],
+        'delivery_func' : [lambda x: 100,lambda x: 100, lambda x: 100, lambda x: 100, lambda x: 100],
         'delivery_split_centre' : i,
-        'delivery_split_std' : i/10 if i > 0 else 0,
+        'delivery_split_std' : i/10 if i > 1 else 0,
         'verbose': False,
         'output' : output
     }
@@ -212,9 +275,9 @@ for i in tqdm(range(0,11)):
 
     simulation.run()
 
-    div_items_results = analyse_trad_pm(path=f"Output_{i}/div_items/", output=f"Output_{i}/div_items/dfg.png", type="div_items")
-    div_order_results = analyse_trad_pm(path=f"Output_{i}/div_order/", output=f"Output_{i}/div_order/dfg.png", type="div_order")
-    conv_results = analyse_trad_pm(path=f"Output_{i}/conv/", output=f"Output_{i}/conv/dfg.png", type="conv")
+    div_items_results = analyse_trad_pm(path=f"Output_{i}/div_items/", type="div_items")
+    div_order_results = analyse_trad_pm(path=f"Output_{i}/div_order/", type="div_order")
+    conv_results = analyse_trad_pm(path=f"Output_{i}/conv/", type="conv")
     ocpm_results = analyse_ocpm(path=f"Output_{i}/", output=f"Output_{i}/ocdfg.png")
     iteration_results_dict = {"mean_splits": i, **div_items_results, **div_order_results,**conv_results,**ocpm_results}
     iteration_results_df = pandas.DataFrame.from_dict(iteration_results_dict, orient='index').T
