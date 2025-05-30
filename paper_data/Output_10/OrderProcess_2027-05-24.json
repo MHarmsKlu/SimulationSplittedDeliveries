@@ -1,0 +1,2089 @@
+{
+    "objectTypes": [
+        {
+            "name": "Order",
+            "attributes": [
+                {
+                    "name": "id",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Item",
+            "attributes": [
+                {
+                    "name": "id",
+                    "type": "string"
+                },
+                {
+                    "name": "material_id",
+                    "type": "string"
+                },
+                {
+                    "name": "amount",
+                    "type": "int"
+                }
+            ]
+        },
+        {
+            "name": "Package",
+            "attributes": [
+                {
+                    "name": "id",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "eventTypes": [
+        {
+            "name": "Place Order",
+            "attributes": [
+                {
+                    "name": "company",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Send Invoice",
+            "attributes": [
+                {
+                    "name": "company",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Receive Payment",
+            "attributes": [
+                {
+                    "name": "company",
+                    "type": "string"
+                },
+                {
+                    "name": "payment_method",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Check Availability",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Split Item",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Pick Item",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Pack Items",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Store Package",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Load Package",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "Deliver Package",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "type": "string"
+                }
+            ]
+        }
+    ],
+    "objects": [
+        {
+            "id": "order_63",
+            "type": "Order",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1",
+                    "qualifier": "Item of Order"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-01T14:32:18",
+                    "value": 1343
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-01T14:32:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_7266",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_7266",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-01T14:19:18",
+                    "value": 135
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-01T14:19:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_9727",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_7266",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_2807",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-05T08:17:18",
+                    "value": 1208
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-05T08:17:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_2487",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_2487",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-05T08:24:18",
+                    "value": 135
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-05T08:24:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_2561",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2487",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_8925",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-09T08:58:18",
+                    "value": 1073
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-09T08:58:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_3015",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_3015",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-09T08:59:18",
+                    "value": 135
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-09T08:59:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_3509",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_3015",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_4117",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-13T08:21:18",
+                    "value": 938
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-13T08:21:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_5890",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_5890",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-13T08:14:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-13T08:14:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_1394",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_5890",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_8419",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-16T08:33:18",
+                    "value": 804
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-16T08:33:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_6405",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_6405",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-16T08:35:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-16T08:35:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_5951",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6405",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_1188",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-18T09:00:18",
+                    "value": 670
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-18T09:00:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_6072",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_6072",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-18T09:04:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-18T09:04:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_9812",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6072",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_4408",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-22T08:36:18",
+                    "value": 536
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-22T08:36:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_1434",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_1434",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-22T08:39:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-22T08:39:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_9242",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1434",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_1885",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-24T08:57:18",
+                    "value": 402
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-24T08:57:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_6261",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_6261",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-24T08:51:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-24T08:51:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_3992",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6261",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_9727",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-27T08:24:18",
+                    "value": 268
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-27T08:24:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Split item out stock"
+                },
+                {
+                    "objectId": "item_63_1_9065",
+                    "qualifier": "Split item deliver"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_9065",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-06-27T08:33:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-06-27T08:33:18",
+                    "value": 1
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Split out of item"
+                },
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Split item out of stock"
+                }
+            ]
+        },
+        {
+            "id": "package_63_p_5410",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9065",
+                    "qualifier": "Package of item"
+                }
+            ]
+        },
+        {
+            "id": "item_63_1_1673",
+            "type": "Item",
+            "attributes": [
+                {
+                    "name": "amount",
+                    "time": "2027-07-04T08:26:18",
+                    "value": 134
+                },
+                {
+                    "name": "material_id",
+                    "time": "2027-07-04T08:26:18",
+                    "value": 1
+                }
+            ],
+            "relationships": []
+        },
+        {
+            "id": "package_63_p_3121",
+            "type": "Package",
+            "attributes": [],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Package of item"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "id": "e_63_1_company_1",
+            "type": "Place Order",
+            "time": "2027-05-24T22:12:18",
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": "company_1"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "order_63",
+                    "qualifier": "Regular placement of order"
+                },
+                {
+                    "objectId": "item_63_1",
+                    "qualifier": "Initial item of order"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_company_1",
+            "type": "Send Invoice",
+            "time": "2027-05-27T09:31:18",
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": "company_1"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "order_63",
+                    "qualifier": "Regular placement of order"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_company_1",
+            "type": "Receive Payment",
+            "time": "2027-05-31T00:36:18",
+            "attributes": [
+                {
+                    "name": "company",
+                    "value": "company_1"
+                },
+                {
+                    "name": "payment_method",
+                    "value": "PayPal"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "order_63",
+                    "qualifier": "Regular placement of order"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-05-31T14:33:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-01T14:19:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_7266",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-01T16:19:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_7266",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-01T16:50:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_7266",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_9727",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-02T08:06:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9727",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-02T12:53:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9727",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_0_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-05T12:53:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "DHL"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9727",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-04T08:22:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-05T08:24:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2807",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_2487",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-07T10:27:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2487",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-07T11:13:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_2487",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_2561",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-07T11:27:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_2561",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-07T12:23:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_2561",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_1_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-12T12:23:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "FedEx"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_2561",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-08T08:59:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-09T08:59:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8925",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_3015",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-09T11:20:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_3015",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-09T11:35:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_3015",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_3509",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-09T11:50:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3509",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-09T15:29:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3509",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_2_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-12T15:29:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "UPS"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3509",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-12T08:11:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-13T08:14:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4117",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_5890",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-14T10:10:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_5890",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-14T10:46:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_5890",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_1394",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-14T10:58:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_1394",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-14T12:21:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_1394",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_3_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-17T12:21:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "FedEx"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_1394",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-15T08:23:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-16T08:35:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_8419",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_6405",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-16T09:41:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6405",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-16T10:12:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6405",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_5951",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-16T10:29:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5951",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-16T12:37:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5951",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_4_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-21T12:37:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "FedEx"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5951",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-17T08:57:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-18T09:04:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1188",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_6072",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-18T10:11:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6072",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-18T10:21:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6072",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_9812",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-18T10:38:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9812",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-18T14:06:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9812",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_5_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-23T14:06:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "DHL"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9812",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-21T08:24:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "S. Wilson"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-22T08:39:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_4408",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_1434",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-22T09:11:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1434",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-22T09:43:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1434",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_9242",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-22T09:51:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9242",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-22T12:43:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9242",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_6_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-25T12:43:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "UPS"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_9242",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-23T09:03:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-24T08:51:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1885",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_6261",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-24T10:36:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6261",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-24T10:53:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_6261",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_3992",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-24T11:04:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3992",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-24T15:26:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3992",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_7_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-06-27T15:26:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "UPS"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3992",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-06-26T08:22:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_5_company_1_1",
+            "type": "Split Item",
+            "time": "2027-06-27T08:33:18",
+            "attributes": [
+                {
+                    "name": "spliter",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9727",
+                    "qualifier": "Split of available items for delivery"
+                },
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Split item out of stock"
+                },
+                {
+                    "objectId": "item_63_1_9065",
+                    "qualifier": "Split item for delivery"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_6_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-06-28T10:36:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9065",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-06-28T10:50:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "J. Williams"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_9065",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_5410",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_9_company_1",
+            "type": "Store Package",
+            "time": "2027-06-28T11:06:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5410",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_10_company_1",
+            "type": "Load Package",
+            "time": "2027-06-28T12:00:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5410",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_8_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-07-03T12:00:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "UPS"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_5410",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_4_company_1_1",
+            "type": "Check Availability",
+            "time": "2027-07-03T08:34:18",
+            "attributes": [
+                {
+                    "name": "checker",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Regular availability check of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_7_company_1_1",
+            "type": "Pick Item",
+            "time": "2027-07-05T10:53:18",
+            "attributes": [
+                {
+                    "name": "picker",
+                    "value": "O. Garcia"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Regular pick of item"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_8_company_1",
+            "type": "Pack Items",
+            "time": "2027-07-05T11:07:18",
+            "attributes": [
+                {
+                    "name": "packer",
+                    "value": "L. Moore"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "item_63_1_1673",
+                    "qualifier": "Regular pack of item"
+                },
+                {
+                    "objectId": "package_63_p_3121",
+                    "qualifier": "Package of items"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_9_company_1",
+            "type": "Store Package",
+            "time": "2027-07-05T11:23:18",
+            "attributes": [
+                {
+                    "name": "storer",
+                    "value": "E. Davis"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3121",
+                    "qualifier": "Regular store of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_10_company_1",
+            "type": "Load Package",
+            "time": "2027-07-05T14:14:18",
+            "attributes": [
+                {
+                    "name": "loader",
+                    "value": "D. Brown"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3121",
+                    "qualifier": "Regular load of package"
+                }
+            ]
+        },
+        {
+            "id": "e_63_9_11_company_1",
+            "type": "Deliver Package",
+            "time": "2027-07-08T14:14:18",
+            "attributes": [
+                {
+                    "name": "logistics_company",
+                    "value": "UPS"
+                }
+            ],
+            "relationships": [
+                {
+                    "objectId": "package_63_p_3121",
+                    "qualifier": "Regular deliver of package"
+                }
+            ]
+        }
+    ]
+}
